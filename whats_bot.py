@@ -13,6 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 # Importar classe para ajudar a localizar os elementos
 from selenium.webdriver.common.by import By
+import os
 
 # Parameters
 WP_LINK = 'https://web.whatsapp.com'
@@ -26,9 +27,10 @@ FIRST_CONTACT = '//*[@id="app"]/div/div/div[2]/div[1]/span/div/span/div/div[2]/d
 SEARCH_CONTACT = '//*[@id="app"]/div/div/div[2]/div[1]/span/div/span/div/div[1]/div/label/div/div[2]'
 SEARCH_OR_INI_CHAT = "//*[contains(@class, '_3FRCZ')]"
 
+
 class WhatsApp:
     def __init__(self):
-        with open('groups.json', 'r') as json_file:
+        with open(os.path.join('data', 'groups.json'), 'r') as json_file:
             self.groups = json.load(json_file)
 
         self.driver = self._setup_driver()
@@ -45,7 +47,7 @@ class WhatsApp:
         #     f'--user-data-dir=C:\\Users\\mario\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 1')
         # chrome_options.add_argument("disable-infobars")
         # driver = webdriver.Chrome(
-            # chrome_options=chrome_options, executable_path=r'.\\chromedriver.exe')
+        # chrome_options=chrome_options, executable_path=r'.\\chromedriver.exe')
         driver = webdriver.Firefox()
         return driver
 
@@ -187,7 +189,7 @@ class WhatsApp:
             mensagem = 'Boa tarde!'
         else:
             mensagem = 'Boa noite!'
-        
+
         self.send_message(mensagem)
 
     def EnviarMensagemBoasVindas(self):
@@ -210,8 +212,8 @@ class WhatsApp:
 
                     el = self._get_element(MESSAGE_BOX)
                     # envia mensagem de boas-vindas
-                    with open('opt-in.json', 'r') as json_file:
-                        boas_vindas = json.load(json_file)                    
+                    with open(os.path.join('data', 'opt-in.json'), 'r') as json_file:
+                        boas_vindas = json.load(json_file)
                     for message in boas_vindas:
                         el.click()
                         for text in message:
@@ -221,18 +223,17 @@ class WhatsApp:
 
                 grp['new_numbers'].remove(number)
                 # atualizar o groups.json
-                with open('groups.json', 'w') as json_file:
+                with open(os.path.join('data', 'groups.json'), 'w') as json_file:
                     json.dump(self.groups, json_file, indent=4)
 
             # encontrar o grupo para não ficar com a última pessoa ativa, dentro do chat com a pessoa
             self.PesquisaContatoOuGrupo(grp['name'])
 
-
         # self.search_contact('Mário Guimarães Beta')
         # sleep(2)
 
     def MonitoraGrupo(self):
-        with open('groups.json', 'r') as json_file:
+        with open(os.path.join('data', 'groups.json'), 'r') as json_file:
             self.groups = json.load(json_file)
         for grp in self.groups:
             self.PesquisaContatoOuGrupo(grp['name'])
@@ -241,10 +242,12 @@ class WhatsApp:
             # Nome do grupo no topo
             # wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(@class, 'DP7CM')]//span[text()='{}']".format(grp['name']))))
             # Apareça Você na lista de membros do grupo
-            wait.until(EC.visibility_of_element_located((By.XPATH, "//*[@class='_2ruUq _3xjAz']//span[contains(text(),'Você')]")))
+            wait.until(EC.visibility_of_element_located(
+                (By.XPATH, "//*[@class='_2ruUq _3xjAz']//span[contains(text(),'Você')]")))
             # obter números dos membros
             group_numbers = self.get_group_numbers()
-            numbers_group_now = [number for number in group_numbers if "+" in number]
+            numbers_group_now = [
+                number for number in group_numbers if "+" in number]
             new_numbers = list(set(numbers_group_now) -
                                set(grp['numbers_group']))
             # new_numbers = [number for number in new_numbers if "+" in number]
@@ -252,10 +255,11 @@ class WhatsApp:
                 set(grp['numbers_group']) - set(numbers_group_now))
             grp['numbers_group'] = numbers_group_now
             grp['occuped_seats'] = len(group_numbers)
-            grp['new_numbers'] = list(set(grp['new_numbers'] + new_numbers) - set(numbers_left_the_group))
+            grp['new_numbers'] = list(
+                set(grp['new_numbers'] + new_numbers) - set(numbers_left_the_group))
             grp['numbers_left'] = grp['numbers_left'] + numbers_left_the_group
             # atualizar o groups.json
-            with open('groups.json', 'w') as json_file:
+            with open(os.path.join('data', 'groups.json'), 'w') as json_file:
                 json.dump(self.groups, json_file, indent=4)
 
     def scheduler_whats(self):
