@@ -1,0 +1,25 @@
+[
+    {
+        "date": "03/09/2020",
+        "time": "11:30",
+        "send": [
+            {
+                "type": "audio",
+                "path": "E:\\M\u00fasicas\\Vicetone & Tony Igy - Astronomia_iLBBRuVDOo4.mp3"
+            },
+            {
+                "type": "text",
+                "text": [
+                    "*\u00c9 amanh\u00e3. Est\u00e1 chegando!* \ud83d\udc4a",
+                    "",
+                    "Nossa semana do Destravar do Emagrecimento *come\u00e7a AMANH\u00c3 14\/09*",
+                    "",
+                    "Aguardo voc\u00ea ao Vivo para destravar seu emagrecimento!",
+                    "",
+                    "j\u00e1 ativa o lembrete para n\u00e3o perder a live...",
+                    "Esse \u00e9 o link!"
+                ]
+            }
+        ]
+    }
+]
