@@ -33,6 +33,9 @@ class WhatsApp:
         with open(os.path.join('data', 'groups.json'), 'r') as json_file:
             self.groups = json.load(json_file)
 
+        # campanhas agendadas
+        self.scheduled_campaigns = []
+
         self.driver = self._setup_driver()
         self.driver.get(WP_LINK)
         print("Por favor faça a leitura do QR Code")
@@ -169,9 +172,22 @@ class WhatsApp:
         self._send_keys(SEARCH_OR_INI_CHAT, nome)
         self._send_keys(SEARCH_OR_INI_CHAT, Keys.ENTER)
 
-    def EnviarMensagens(self):
-        for grp in self.groups:
-            self.PesquisaContatoOuGrupo(grp['name'])
+    def Campain(self, id):
+        print('campain = {}'.format(id))
+        return schedule.CancelJob
+
+    def Campains(self):
+        with open(os.path.join('data', 'campains.json'), 'r') as json_file:
+            self.campains = json.load(json_file)
+        today = datetime.today().strftime('%d/%m/%Y')
+        for campain in self.campains:
+            if (not campain['id'] in self.scheduled_campaigns) and (campain['date'] == today):
+                now = datetime.now()
+                hour_minute = campain['time'].split(':')
+                time_to_execute = now.replace(hour=int(hour_minute[0]), minute=int(hour_minute[1]), second=0, microsecond=0)
+                if now < time_to_execute:
+                    schedule.every().day.at(campain['time']).do(self.Campain, campain['id'])
+                    self.scheduled_campaigns.append(campain['id'])
 
     def EnviarMensagemSuporte(self):
         self.search_contact('Mário Guimarães Beta')
@@ -212,7 +228,7 @@ class WhatsApp:
 
                     el = self._get_element(MESSAGE_BOX)
                     # envia mensagem de boas-vindas
-                    with open(os.path.join('data', 'opt-in.json'), 'r') as json_file:
+                    with open(os.path.join('data', 'welcome.json'), 'r') as json_file:
                         boas_vindas = json.load(json_file)
                     for message in boas_vindas:
                         el.click()
@@ -262,10 +278,10 @@ class WhatsApp:
             with open(os.path.join('data', 'groups.json'), 'w') as json_file:
                 json.dump(self.groups, json_file, indent=4)
 
-    def scheduler_whats(self):
-        # schedule.every(5).minutes.do(self.EnviarMensagens)
-        schedule.every(1).minutes.do(self.MonitoraGrupo)
-        schedule.every(2).minutes.do(self.EnviarMensagemBoasVindas)
+    def scheduler_jobs(self):
+        schedule.every(1).minutes.do(self.Campains)
+        # schedule.every(1).minutes.do(self.MonitoraGrupo)
+        # schedule.every(2).minutes.do(self.EnviarMensagemBoasVindas)
 
         while 1:
             schedule.run_pending()
@@ -279,14 +295,14 @@ class WhatsApp:
 bot = WhatsApp()
 wait = WebDriverWait(bot.driver, 1800)
 wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
-# bot.EnviarMensagens()
+bot.Campains()
 # bot.MudarNomeGrupo()
 # bot.EnviarMensagemSuporte()
 
-bot.MonitoraGrupo()
-bot.EnviarMensagemBoasVindas()
+# bot.MonitoraGrupo()
+# bot.EnviarMensagemBoasVindas()
 
 if __name__ == "__main__":
-    bot.scheduler_whats()
+    bot.scheduler_jobs()
 
 bot.end()
