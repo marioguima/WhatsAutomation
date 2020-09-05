@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 # from selenium.webdriver.chrome.options import Options
 import selenium.webdriver.firefox
+from selenium.webdriver.firefox.options import Options as fireOptions
 from time import sleep
 import threading
 import json
@@ -30,6 +31,7 @@ CLIP_ICON = "//div[@title='Anexar']"
 IMAGE_BUTTON = "//input[@accept='image/*,video/mp4,video/3gpp,video/quicktime']"
 SEND_IMAGE = "//*[contains(@class, '_6TTaR')]"
 
+
 class WhatsApp:
     def __init__(self):
         with open(os.path.join('data', 'groups.json'), 'r') as json_file:
@@ -53,7 +55,12 @@ class WhatsApp:
         # chrome_options.add_argument("disable-infobars")
         # driver = webdriver.Chrome(
         # chrome_options=chrome_options, executable_path=r'.\\chromedriver.exe')
-        driver = webdriver.Firefox()
+        fire_profile = os.environ['APPDATA'] + \
+            '\\Mozilla\\Firefox\\Profiles\\gc36qc2n.default-release'
+        firefox_options = fireOptions()
+        firefox_options.headless = False
+        driver = webdriver.Firefox(fire_profile, executable_path=(
+            os.path.dirname(os.path.realpath(__file__)) + '\\geckodriver'), options=firefox_options)
         return driver
 
     def _get_element(self, xpath, attempts=5, _count=0):
@@ -177,31 +184,33 @@ class WhatsApp:
     def Campain(self, campain):
         print('campain = {}'.format(campain['id']))
         send = campain['send']
-        for grp in self.groups:
-            self.PesquisaContatoOuGrupo(grp['name'])
+        for group in self.groups:
+            if group['id'] in campain['to']:
+                self.PesquisaContatoOuGrupo(group['name'])
 
-            wait = WebDriverWait(self.driver, 1800)
-            # Aguarda a Caixa de envio de mensagem estar pronta para ser utilizada
-            wait.until(EC.element_to_be_clickable((By.XPATH, MESSAGE_BOX)))
+                wait = WebDriverWait(self.driver, 1800)
+                # Aguarda a Caixa de envio de mensagem estar pronta para ser utilizada
+                wait.until(EC.element_to_be_clickable((By.XPATH, MESSAGE_BOX)))
 
-            messageBox = self._get_element(MESSAGE_BOX)
-            for content in send:
-                if content['type'] == 'text':
-                    messageBox.click()
-                    for text in content['text']:
-                        messageBox.send_keys(text, Keys.SHIFT, Keys.ENTER)
-                    self._click(SEND)
-                if content['type'] == 'group_key':
-                    value = grp['keys'][content['key']]
-                    messageBox.click()
-                    messageBox.send_keys(value)
-                    self._click(SEND)
-                if content['type'] in ['image', 'document', 'video']:
-                    path = content['path']
-                    self._click(CLIP_ICON)
-                    self._get_element(IMAGE_BUTTON).send_keys(path)
-                    wait.until(EC.element_to_be_clickable((By.XPATH, SEND_IMAGE)))
-                    self._click(SEND_IMAGE)
+                messageBox = self._get_element(MESSAGE_BOX)
+                for content in send:
+                    if content['type'] == 'text':
+                        messageBox.click()
+                        for text in content['text']:
+                            messageBox.send_keys(text, Keys.SHIFT, Keys.ENTER)
+                        self._click(SEND)
+                    if content['type'] == 'group_key':
+                        value = group['keys'][content['key']]
+                        messageBox.click()
+                        messageBox.send_keys(value)
+                        self._click(SEND)
+                    if content['type'] in ['image', 'document', 'video', 'audio']:
+                        path = content['path']
+                        self._click(CLIP_ICON)
+                        self._get_element(IMAGE_BUTTON).send_keys(path)
+                        wait.until(EC.element_to_be_clickable(
+                            (By.XPATH, SEND_IMAGE)))
+                        self._click(SEND_IMAGE)
 
         return schedule.CancelJob
 
@@ -310,9 +319,9 @@ class WhatsApp:
                 json.dump(self.groups, json_file, indent=4)
 
     def scheduler_jobs(self):
-        schedule.every(1).minutes.do(self.Campains)
-        # schedule.every(1).minutes.do(self.MonitoraGrupo)
-        # schedule.every(2).minutes.do(self.EnviarMensagemBoasVindas)
+        # schedule.every(1).minutes.do(self.Campains)
+        schedule.every(1).minutes.do(self.MonitoraGrupo)
+        schedule.every(2).minutes.do(self.EnviarMensagemBoasVindas)
 
         while 1:
             schedule.run_pending()
@@ -333,8 +342,9 @@ wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
 # with open(os.path.join('data', 'campains.json'), 'r') as json_file:
 #     campains = json.load(json_file)
 # bot.Campain(campains[0])
+# sleep(10)
 
-bot.Campains()
+# bot.Campains()
 bot.MonitoraGrupo()
 bot.EnviarMensagemBoasVindas()
 
