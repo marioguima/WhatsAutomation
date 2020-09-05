@@ -26,7 +26,9 @@ NEW_CHAT = '//*[@id="side"]/header/div[2]/div/span/div[2]/div'
 FIRST_CONTACT = '//*[@id="app"]/div/div/div[2]/div[1]/span/div/span/div/div[2]/div/div/div/div[2]/div'
 SEARCH_CONTACT = '//*[@id="app"]/div/div/div[2]/div[1]/span/div/span/div/div[1]/div/label/div/div[2]'
 SEARCH_OR_INI_CHAT = "//*[contains(@class, '_3FRCZ')]"
-
+CLIP_ICON = "//div[@title='Anexar']"
+IMAGE_BUTTON = "//input[@accept='image/*,video/mp4,video/3gpp,video/quicktime']"
+SEND_IMAGE = "//*[contains(@class, '_6TTaR')]"
 
 class WhatsApp:
     def __init__(self):
@@ -172,8 +174,35 @@ class WhatsApp:
         self._send_keys(SEARCH_OR_INI_CHAT, nome)
         self._send_keys(SEARCH_OR_INI_CHAT, Keys.ENTER)
 
-    def Campain(self, id):
-        print('campain = {}'.format(id))
+    def Campain(self, campain):
+        print('campain = {}'.format(campain['id']))
+        send = campain['send']
+        for grp in self.groups:
+            self.PesquisaContatoOuGrupo(grp['name'])
+
+            wait = WebDriverWait(self.driver, 1800)
+            # Aguarda a Caixa de envio de mensagem estar pronta para ser utilizada
+            wait.until(EC.element_to_be_clickable((By.XPATH, MESSAGE_BOX)))
+
+            messageBox = self._get_element(MESSAGE_BOX)
+            for content in send:
+                if content['type'] == 'text':
+                    messageBox.click()
+                    for text in content['text']:
+                        messageBox.send_keys(text, Keys.SHIFT, Keys.ENTER)
+                    self._click(SEND)
+                if content['type'] == 'group_key':
+                    value = grp['keys'][content['key']]
+                    messageBox.click()
+                    messageBox.send_keys(value)
+                    self._click(SEND)
+                if content['type'] in ['image', 'document', 'video']:
+                    path = content['path']
+                    self._click(CLIP_ICON)
+                    self._get_element(IMAGE_BUTTON).send_keys(path)
+                    wait.until(EC.element_to_be_clickable((By.XPATH, SEND_IMAGE)))
+                    self._click(SEND_IMAGE)
+
         return schedule.CancelJob
 
     def Campains(self):
@@ -184,9 +213,11 @@ class WhatsApp:
             if (not campain['id'] in self.scheduled_campaigns) and (campain['date'] == today):
                 now = datetime.now()
                 hour_minute = campain['time'].split(':')
-                time_to_execute = now.replace(hour=int(hour_minute[0]), minute=int(hour_minute[1]), second=0, microsecond=0)
+                time_to_execute = now.replace(hour=int(hour_minute[0]), minute=int(
+                    hour_minute[1]), second=0, microsecond=0)
                 if now < time_to_execute:
-                    schedule.every().day.at(campain['time']).do(self.Campain, campain['id'])
+                    schedule.every().day.at(campain['time']).do(
+                        self.Campain, campain)
                     self.scheduled_campaigns.append(campain['id'])
 
     def EnviarMensagemSuporte(self):
@@ -295,12 +326,17 @@ class WhatsApp:
 bot = WhatsApp()
 wait = WebDriverWait(bot.driver, 1800)
 wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
-bot.Campains()
+
 # bot.MudarNomeGrupo()
 # bot.EnviarMensagemSuporte()
 
-# bot.MonitoraGrupo()
-# bot.EnviarMensagemBoasVindas()
+# with open(os.path.join('data', 'campains.json'), 'r') as json_file:
+#     campains = json.load(json_file)
+# bot.Campain(campains[0])
+
+bot.Campains()
+bot.MonitoraGrupo()
+bot.EnviarMensagemBoasVindas()
 
 if __name__ == "__main__":
     bot.scheduler_jobs()

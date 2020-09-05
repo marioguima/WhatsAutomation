@@ -1,13 +1,9 @@
 [
     {
         "id": "1",
-        "date": "03\/09\/2020",
-        "time": "19:59",
+        "date": "04\/09\/2020",
+        "time": "14:57",
         "send": [
-            {
-                "type": "audio",
-                "path": "E:\\M\u00fasicas\\Vicetone & Tony Igy - Astronomia_iLBBRuVDOo4.mp3"
-            },
             {
                 "type": "text",
                 "text": [
@@ -28,31 +24,39 @@
             {
                 "type": "image",
                 "path": "E:\\Pictures\\instagram-marioguimaraes-coach.jpg"
+            },
+            {
+                "type": "document",
+                "path": "E:\\1-Projetos\\Desafio Express Eu Gostosa\\Dia 20 - A\u00e7\u00facares e ado\u00e7antes.pdf"
+            },
+            {
+                "type": "video",
+                "path": "E:\\1-Projetos\\Desafio Express Eu Gostosa\\Dia 18 - V\u00eddeo mentalidade magra.mp4"
             }
         ]
     },
     {
         "id": "2",
-        "date": "03\/09\/2020",
-        "time": "20:00",
+        "date": "04\/09\/2020",
+        "time": "14:01",
         "send": []
     },
     {
         "id": "3",
-        "date": "03\/09\/2020",
-        "time": "20:03",
+        "date": "04\/09\/2020",
+        "time": "14:02",
         "send": []
     },
     {
         "id": "4",
-        "date": "03\/09\/2020",
-        "time": "20:12",
+        "date": "04\/09\/2020",
+        "time": "14:03",
         "send": []
     },
     {
         "id": "5",
-        "date": "03\/09\/2020",
-        "time": "20:31",
+        "date": "04\/09\/2020",
+        "time": "14:04",
         "send": []
     }
 ]
