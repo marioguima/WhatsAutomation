@@ -304,16 +304,22 @@ class WhatsApp:
             group_numbers = self.get_group_numbers()
             numbers_group_now = [
                 number for number in group_numbers if "+" in number]
+
+            # números que saíram do grupo
+            numbers_left_the_group = list(
+                set(grp['numbers_group']) - set(numbers_group_now))
+            grp['numbers_left'] = grp['numbers_left'] + numbers_left_the_group
+
             new_numbers = list(set(numbers_group_now) -
                                set(grp['numbers_group']))
             # new_numbers = [number for number in new_numbers if "+" in number]
-            numbers_left_the_group = list(
-                set(grp['numbers_group']) - set(numbers_group_now))
+
             grp['numbers_group'] = numbers_group_now
+
             grp['occuped_seats'] = len(group_numbers)
+            grp['new_numbers'] = list(set(grp['new_numbers'] + new_numbers))
             grp['new_numbers'] = list(
-                set(grp['new_numbers'] + new_numbers) - set(numbers_left_the_group))
-            grp['numbers_left'] = grp['numbers_left'] + numbers_left_the_group
+                set(grp['new_numbers']) - set(grp['numbers_left']))
             # atualizar o groups.json
             with open(os.path.join('data', 'groups.json'), 'w') as json_file:
                 json.dump(self.groups, json_file, indent=4)
@@ -346,9 +352,9 @@ wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
 
 # bot.Campains()
 bot.MonitoraGrupo()
-bot.EnviarMensagemBoasVindas()
+# bot.EnviarMensagemBoasVindas()
 
-if __name__ == "__main__":
-    bot.scheduler_jobs()
+# if __name__ == "__main__":
+#     bot.scheduler_jobs()
 
 bot.end()
