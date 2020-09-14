@@ -352,9 +352,9 @@ wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
 
 # bot.Campains()
 bot.MonitoraGrupo()
-# bot.EnviarMensagemBoasVindas()
+bot.EnviarMensagemBoasVindas()
 
-# if __name__ == "__main__":
-#     bot.scheduler_jobs()
+if __name__ == "__main__":
+    bot.scheduler_jobs()
 
 bot.end()
