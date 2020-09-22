@@ -15,6 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 # Importar classe para ajudar a localizar os elementos
 from selenium.webdriver.common.by import By
 import os
+import requests
 
 # Parameters
 WP_LINK = 'https://web.whatsapp.com'
@@ -137,6 +138,77 @@ class WhatsApp:
             return True
         except:
             return False
+
+    def CriaGrupo(self):
+        # with open(os.path.join('data', 'groups.json'), 'r') as json_file:
+        #     self.groups = json.load(json_file)
+        # for grp in self.groups:
+        # self.PesquisaContatoOuGrupo(grp['name'])
+
+        wait = WebDriverWait(self.driver, 1800)
+        # Nome do grupo no topo
+        # wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(@class, 'DP7CM')]//span[text()='{}']".format(grp['name']))))
+        # Apareça Você na lista de membros do grupo
+
+        # Menu de opções
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[@title='Mais opções']")))
+        self._click("//*[@title='Mais opções']")
+
+        # Novo grupo
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//div[text()='Novo grupo']")))
+        self._click("//div[text()='Novo grupo']")
+
+        # Pesquisa de contato
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, '_17ePo')]")))
+        self._click("//*[contains(@class, '_17ePo')]")
+
+        # Digitando o Nome do contato
+        self._send_keys("//*[contains(@class, '_17ePo')]",
+                        "Mário Guimarães Beta")
+        self._send_keys("//*[contains(@class, '_17ePo')]", Keys.ENTER)
+
+        # Botão de próximo
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, '_3y5oW')]")))
+        self._click("//*[contains(@class, '_3y5oW')]")
+
+        # Nome do contato
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, '_3WjMU')]//*[contains(@class, '_3FRCZ')]")))
+        self._click(
+            "//*[contains(@class, '_3WjMU')]//*[contains(@class, '_3FRCZ')]")
+
+        # Imagem do grupo
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, '_2H1bg')]")))
+        self._click("//*[contains(@class, '_2H1bg')]")
+
+        # Carregar foto
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, 'I4jbF')]/li[2]")))
+        self._get_element("//*[contains(@class, '_3X-61')]/input").send_keys(
+            r"E:\1-Projetos\FUNIL PRODUTO\Lançamentos\Semana Riqueza Digital\Identidade Visual\grupo-whatsapp.png")
+
+        # Send image
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, '_3qMYG')]")))
+        self._click("//*[contains(@class, '_3qMYG')]")
+
+        # Digitando o Nome do grupo
+        self._send_keys(
+            "//*[contains(@class, '_3WjMU')]//*[contains(@class, '_3FRCZ')]", "RIQUEZA DIGITAL a")
+        self._send_keys(
+            "//*[contains(@class, '_3WjMU')]//*[contains(@class, '_3FRCZ')]", Keys.ENTER)
+
+        # parei aqui
+
+        # Selecionar o grupo no topo
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, '_33QME')]")))
+        self._click("//*[contains(@class, '_33QME')]")
 
     # def MudarNomeGrupo(self):
     #     for grp in self.groups:
@@ -324,10 +396,44 @@ class WhatsApp:
             with open(os.path.join('data', 'groups.json'), 'w') as json_file:
                 json.dump(self.groups, json_file, indent=4)
 
+    def ApiAtualizaGrupos(self):
+
+        # Colunas que podem ser atualizadas
+        # {
+        #     "name": "DESTRAVAR TESTE a",        NOME DO GRUPO (MÁXIMO 25 CARACTERES)
+        #     "seats": 200,                       LUGARES DISPONÍVEIS (CONTANDO COM OS ADMINS)
+        #     "occuped_seats": 0                  LUGARES OCUPADOS (CONTANDO COM OS ADMINS)
+        # }
+
+        # url = "https://marioguimaraes.com.br/automation/api/wagroups/1"
+        urlApi = "http://localhost/laravel-tips/adminlte/public/api/wagroups/{}"
+
+        with open(os.path.join('data', 'groups.json'), 'r') as json_file:
+            self.groups = json.load(json_file)
+        for grp in self.groups:
+            group_data = {
+                "occuped_seats": grp['occuped_seats']
+            }
+            url = urlApi.format(grp['id'])
+            response = requests.put(url=url, json=group_data)
+
+            if response.status_code >= 200 and response.status_code <= 209:
+                # Sucesso
+                print('Status Code', response.status_code)
+                print('Reason', response.reason)
+                print('Texto', response.text)
+                print('JSON', response.json())
+            else:
+                # Erros
+                print('Status Code', response.status_code)
+                print('Reason', response.reason)
+                print('Texto', response.text)
+
     def scheduler_jobs(self):
         # schedule.every(1).minutes.do(self.Campains)
         schedule.every(1).minutes.do(self.MonitoraGrupo)
         schedule.every(2).minutes.do(self.EnviarMensagemBoasVindas)
+        # schedule.every(5).minutes.do(self.ApiAtualizaGrupos)
 
         while 1:
             schedule.run_pending()
@@ -350,11 +456,14 @@ wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
 # bot.Campain(campains[0])
 # sleep(10)
 
-# bot.Campains()
+# bot.CriaGrupo()
+
+# # bot.Campains()
 bot.MonitoraGrupo()
-bot.EnviarMensagemBoasVindas()
+# bot.EnviarMensagemBoasVindas()
+# # bot.ApiAtualizaGrupos()
 
-if __name__ == "__main__":
-    bot.scheduler_jobs()
+# if __name__ == "__main__":
+#     bot.scheduler_jobs()
 
-bot.end()
+# bot.end()
