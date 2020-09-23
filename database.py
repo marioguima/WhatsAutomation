@@ -8,11 +8,12 @@ import os
 
 class DataBase:
 
-    # def __init__(self):
-    #     pass
+    def __init__(self):
+        self.absolutePath = os.path.dirname(__file__)
+        self.dataPath = os.path.join(os.path.dirname(__file__), 'data')
 
     def ConexaoBanco(self):
-        caminho = os.path.join('data', 'data.sqlite')
+        caminho = os.path.join(self.dataPath, 'data.sqlite')
         con = None
         # try:
         con = sqlite3.connect(caminho)
@@ -35,11 +36,11 @@ class DataBase:
         sqlDDL = """
         CREATE TABLE IF NOT EXISTS campaigns (
             id               INTEGER       PRIMARY KEY,
-            name             VARCHAR (191),
-            start            DATETIME,
-            [end]            DATETIME,
-            start_monitoring DATETIME,
-            stop_monitoring  DATETIME,
+            name             VARCHAR (191) NOT NULL,
+            start            DATETIME      NOT NULL,
+            [end]            DATETIME      NOT NULL,
+            start_monitoring DATETIME      NOT NULL,
+            stop_monitoring  DATETIME      NOT NULL,
             description      TEXT,
             created_at       DATETIME      DEFAULT (datetime()) NOT NULL,
             updated_at       DATETIME      DEFAULT (datetime()) NOT NULL
@@ -52,24 +53,11 @@ class DataBase:
         sqlDDL = """
         CREATE TABLE IF NOT EXISTS segmentations (
             id           INTEGER       PRIMARY KEY,
-            campaigns_id INTEGER       REFERENCES campaigns (id),
-            name         VARCHAR (191),
+            campaigns_id INTEGER       REFERENCES campaigns (id) NOT NULL,
+            name         VARCHAR (191) NOT NULL,
             description  TEXT,
             created_at   DATETIME      DEFAULT (datetime()) NOT NULL,
             updated_at   DATETIME      DEFAULT (datetime()) NOT NULL
-        );
-        """
-        self.executeCommand(vCon, sqlDDL)
-
-        # WA_GROUP_INITIAL_MEMBERS
-        sqlDDL = """
-        CREATE TABLE IF NOT EXISTS wa_group_initial_members (
-            id            INTEGER       PRIMARY KEY,
-            wa_groups_id  INTEGER       REFERENCES wa_groups (id),
-            contact_name  VARCHAR (100),
-            administrator BOOLEAN,
-            created_at    DATETIME      DEFAULT (datetime()) NOT NULL,
-            updated_at    DATETIME      DEFAULT (datetime()) NOT NULL
         );
         """
         self.executeCommand(vCon, sqlDDL)
@@ -78,18 +66,44 @@ class DataBase:
         sqlDDL = """
         CREATE TABLE IF NOT EXISTS wa_groups (
             id               INTEGER       PRIMARY KEY,
-            segmentations_id INTEGER       REFERENCES segmentations (id),
-            name             VARCHAR (191),
+            segmentations_id INTEGER       REFERENCES segmentations (id) NOT NULL,
+            name             VARCHAR (191) NOT NULL,
             image_url        VARCHAR (255),
             description      TEXT,
             edit_data        VARCHAR (20),
             send_message     VARCHAR (20),
-            seats            INTEGER,
+            seats            INTEGER       NOT NULL,
             occuped_seats    INTEGER,
-            people_left      INTEGER,
             url              VARCHAR (255),
             created_at       DATETIME      DEFAULT (datetime()) NOT NULL,
             updated_at       DATETIME      DEFAULT (datetime()) NOT NULL
+        );
+        """
+        self.executeCommand(vCon, sqlDDL)
+
+        # WA_GROUP_INITIAL_MEMBERS
+        sqlDDL = """
+        CREATE TABLE IF NOT EXISTS wa_group_initial_members (
+            id            INTEGER       PRIMARY KEY,
+            wa_groups_id  INTEGER       REFERENCES wa_groups (id) NOT NULL,
+            contact_name  VARCHAR (100) NOT NULL,
+            administrator BOOLEAN       NOT NULL,
+            created_at    DATETIME      DEFAULT (datetime()) NOT NULL,
+            updated_at    DATETIME      DEFAULT (datetime()) NOT NULL
+        );
+        """
+        self.executeCommand(vCon, sqlDDL)
+
+        # WA_GROUP_LEADS
+        sqlDDL = """
+        CREATE TABLE IF NOT EXISTS wa_group_leads (
+            id            INTEGER       PRIMARY KEY,
+            wa_groups_id  INTEGER       REFERENCES wa_groups (id) NOT NULL,
+            number        VARCHAR (25)  NOT NULL,
+            sent_welcome  DATETIME,
+            out           BOOLEAN       DEFAULT (false) NOT NULL,
+            created_at    DATETIME      DEFAULT (datetime()) NOT NULL,
+            updated_at    DATETIME      DEFAULT (datetime()) NOT NULL
         );
         """
         self.executeCommand(vCon, sqlDDL)
@@ -138,6 +152,18 @@ class DataBase:
             FOR EACH ROW
         BEGIN
             UPDATE wa_group_initial_members SET updated_at = datetime() WHERE id = OLD.id;
+        END;
+        """
+        self.executeCommand(vCon, sqlDDL)
+
+        # TRIGGER WA_GROUP_LEADS_UPDATED_AT
+        sqlDDL = """
+        CREATE TRIGGER IF NOT EXISTS wa_group_leads_updated_at
+                AFTER UPDATE
+                    ON WA_GROUP_LEADS
+            FOR EACH ROW
+        BEGIN
+            UPDATE WA_GROUP_LEADS SET updated_at = datetime() WHERE id = OLD.id;
         END;
         """
         self.executeCommand(vCon, sqlDDL)
@@ -216,7 +242,7 @@ class DataBase:
         #     print(ex)
 
     def groupStore(self, id, segmentations_id, name, image_utl, description,
-                   edit_data, send_message, seats, occuped_seats, people_left, url):
+                   edit_data, send_message, seats, occuped_seats, url):
         sql = """INSERT INTO wa_groups (
             id,
             segmentations_id,
@@ -227,7 +253,6 @@ class DataBase:
             send_message,
             seats,
             occuped_seats,
-            people_left,
             url
         )
         VALUES (
@@ -240,7 +265,6 @@ class DataBase:
             '""" + send_message + """',
             """ + str(seats) + """,
             """ + str(occuped_seats) + """,
-            """ + str(people_left) + """,
             '""" + url + """'
         );
         """
@@ -278,4 +302,5 @@ class DataBase:
         #     print(ex)
 
 
-DataBase().createDatabase()
+if __name__ == "__main__":
+    DataBase().createDatabase()

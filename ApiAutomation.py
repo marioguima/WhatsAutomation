@@ -2,51 +2,40 @@ import json
 import requests
 import os
 from database import DataBase as db
-from pathlib import Path
 
 
 class ApiAutomation:
+    # urlBaseApi = "https://marioguimaraes.com.br/automation/api/"
+    urlBaseApi = "http://localhost/laravel-tips/adminlte/api/"
 
     def __init__(self):
-        self.absolutePath = Path('ApiAutomation.py')
+        self.absolutePath = os.path.dirname(__file__)
+        self.imagePath = os.path.join(
+            os.path.dirname(__file__), 'data', 'img')
 
-    def getNewCampaigns(self):
-        # campaignsFileName = 'campaigns.json'
-        # urlApi = "https://marioguimaraes.com.br/automation/api/campaigns"
-        urlApi = "http://localhost/laravel-tips/adminlte/api/campaigns"
+    def getUpdatesCampaigns(self):
+        urlApi = os.path.join(self.urlBaseApi, "campaigns")
         response = requests.get(url=urlApi)
 
         if response.status_code >= 200 and response.status_code <= 209:
             campaignsWeb = response.json()
 
-            # if os.path.isfile(os.path.join(os.path.dirname(__file__), 'data', campaignsFileName)):
-            #     with open(os.path.join(os.path.dirname(__file__), 'data', campaignsFileName), 'r') as json_file:
-            #         campaignsLocal = json.load(json_file)
-
-            #     for campaignWeb in campaignsWeb['campaigns']:
-            #         for segmentationWeb in campaignWeb['segmentations']:
-            #             for groupWeb in segmentationWeb['groups']:
-            #                 groupWeb['numbers_group'] = []
-            #                 groupWeb['new_numbers'] = []
-            #                 groupWeb['numbers_left'] = []
-
-            # else:
             for campaignWeb in campaignsWeb['campaigns']:
                 if not db().existsCampaign(campaignWeb['id']):
                     db().campaignStore(campaignWeb['id'],
-                                        campaignWeb['name'],
-                                        campaignWeb['start'],
-                                        campaignWeb['end'],
-                                        campaignWeb['start_monitoring'],
-                                        campaignWeb['stop_monitoring'],
-                                        campaignWeb['description'])
+                                       campaignWeb['name'],
+                                       campaignWeb['start'],
+                                       campaignWeb['end'],
+                                       campaignWeb['start_monitoring'],
+                                       campaignWeb['stop_monitoring'],
+                                       campaignWeb['description'])
 
                 for segmentationWeb in campaignWeb['segmentations']:
                     if not db().existsSegmentation(segmentationWeb['id']):
                         db().segmentationStore(segmentationWeb['id'],
-                                                segmentationWeb['campaigns_id'],
-                                                segmentationWeb['name'],
-                                                segmentationWeb['description'])
+                                               segmentationWeb['campaigns_id'],
+                                               segmentationWeb['name'],
+                                               segmentationWeb['description'])
 
                     for groupWeb in segmentationWeb['groups']:
                         if not db().existsGroup(groupWeb['id']):
@@ -59,21 +48,15 @@ class ApiAutomation:
                                             groupWeb['send_message'],
                                             groupWeb['seats'],
                                             groupWeb['occuped_seats'],
-                                            groupWeb['people_left'],
                                             groupWeb['url'])
 
                         for groupInitialMembersWeb in groupWeb['initial_members']:
                             if not db().existsGroupInitialMembers(groupInitialMembersWeb['id']):
                                 db().groupInitialMembersStore(groupInitialMembersWeb['id'],
-                                                                groupInitialMembersWeb['wa_groups_id'],
-                                                                groupInitialMembersWeb['contact_name'],
-                                                                groupInitialMembersWeb['administrator'])
+                                                              groupInitialMembersWeb['wa_groups_id'],
+                                                              groupInitialMembersWeb['contact_name'],
+                                                              groupInitialMembersWeb['administrator'])
 
-            # campaignsLocal = campaignsWeb
-
-            # # atualizar campaigns.json
-            # with open(os.path.join(os.path.dirname(__file__), 'data', campaignsFileName), 'w') as json_file:
-            #     json.dump(campaignsLocal, json_file, indent=4)
         else:
             # Erros
             print('Status Code', response.status_code)
@@ -145,4 +128,5 @@ class ApiAutomation:
                 print('Texto', response.text)
 
 
-ApiAutomation().getNewCampaigns()
+if __name__ == "__main__":
+    ApiAutomation().getUpdatesCampaigns()
