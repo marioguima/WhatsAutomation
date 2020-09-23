@@ -5,7 +5,7 @@
         "seats": 200,
         "occuped_seats": 2,
         "status": true,
-        "keys": {
+        "key_value": {
             "link_aula_1": "https://marioguimaraes.com.br/aula-1-destravar-1409a",
             "link_aula_2": "https://marioguimaraes.com.br/aula-2-destravar-1409a",
             "link_aula_3": "https://marioguimaraes.com.br/aula-3-destravar-1409a",
@@ -22,7 +22,7 @@
         "seats": 200,
         "occuped_seats": 124,
         "status": true,
-        "keys": {
+        "key_value": {
             "link_aula_1": "https://marioguimaraes.com.br/aula-1-destravar-1409a",
             "link_aula_2": "https://marioguimaraes.com.br/aula-2-destravar-1409a",
             "link_aula_3": "https://marioguimaraes.com.br/aula-3-destravar-1409a",
@@ -332,7 +332,7 @@
         "seats": 200,
         "occuped_seats": 27,
         "status": true,
-        "keys": {
+        "key_value": {
             "link_aula_1": "https://marioguimaraes.com.br/aula-1-destravar-1409b",
             "link_aula_2": "https://marioguimaraes.com.br/aula-2-destravar-1409b",
             "link_aula_3": "https://marioguimaraes.com.br/aula-3-destravar-1409b",
@@ -408,7 +408,7 @@
         "seats": 200,
         "occuped_seats": 109,
         "status": true,
-        "keys": {
+        "key_value": {
             "link_aula_1": "https://marioguimaraes.com.br/aula-1-destravar-1409c",
             "link_aula_2": "https://marioguimaraes.com.br/aula-2-destravar-1409c",
             "link_aula_3": "https://marioguimaraes.com.br/aula-3-destravar-1409c",
@@ -711,7 +711,7 @@
         "seats": 200,
         "occuped_seats": 134,
         "status": true,
-        "keys": {
+        "key_value": {
             "link_aula_1": "https://marioguimaraes.com.br/aula-1-destravar-1409d",
             "link_aula_2": "https://marioguimaraes.com.br/aula-2-destravar-1409d",
             "link_aula_3": "https://marioguimaraes.com.br/aula-3-destravar-1409d",
@@ -1075,7 +1075,7 @@
         "seats": 200,
         "occuped_seats": 89,
         "status": true,
-        "keys": {
+        "key_value": {
             "link_aula_1": "https://marioguimaraes.com.br/aula-1-destravar-1409e",
             "link_aula_2": "https://marioguimaraes.com.br/aula-2-destravar-1409e",
             "link_aula_3": "https://marioguimaraes.com.br/aula-3-destravar-1409e",
@@ -1320,7 +1320,7 @@
         "seats": 200,
         "occuped_seats": 145,
         "status": true,
-        "keys": {
+        "key_value": {
             "link_aula_1": "https://marioguimaraes.com.br/aula-1-destravar-1409f",
             "link_aula_2": "https://marioguimaraes.com.br/aula-2-destravar-1409f",
             "link_aula_3": "https://marioguimaraes.com.br/aula-3-destravar-1409f",

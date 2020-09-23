@@ -16,6 +16,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import os
 import requests
+import ApiAutomation
+import database as db
 
 # Parameters
 WP_LINK = 'https://web.whatsapp.com'
@@ -34,46 +36,46 @@ SEND_IMAGE = "//*[contains(@class, '_6TTaR')]"
 
 
 class WhatsApp:
-    def __init__(self):
-        with open(os.path.join('data', 'groups.json'), 'r') as json_file:
-            self.groups = json.load(json_file)
+    # def __init__(self):
+    #     with open(os.path.join('data', 'groups.json'), 'r') as json_file:
+    #         self.groups = json.load(json_file)
 
-        # campanhas agendadas
-        self.scheduled_campaigns = []
+    #     # mensagens agendadas
+    #     self.scheduled_messages = []
 
-        self.driver = self._setup_driver()
-        self.driver.get(WP_LINK)
-        print("Por favor faça a leitura do QR Code")
-        # input()
+    #     self.driver = self._setup_driver()
+    #     self.driver.get(WP_LINK)
+    #     print("Por favor faça a leitura do QR Code")
+    #     # input()
 
-    @staticmethod
-    def _setup_driver():
-        # chrome_options = Options()
-        # chrome_options.binary_location = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-        # chrome_options.add_argument('lang=pt-br')
-        # chrome_options.add_argument(
-        #     f'--user-data-dir=C:\\Users\\mario\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 1')
-        # chrome_options.add_argument("disable-infobars")
-        # driver = webdriver.Chrome(
-        # chrome_options=chrome_options, executable_path=r'.\\chromedriver.exe')
-        fire_profile = os.environ['APPDATA'] + \
-            '\\Mozilla\\Firefox\\Profiles\\gc36qc2n.default-release'
-        firefox_options = fireOptions()
-        firefox_options.headless = False
-        driver = webdriver.Firefox(fire_profile, executable_path=(
-            os.path.dirname(os.path.realpath(__file__)) + '\\geckodriver'), options=firefox_options)
-        return driver
+    # @staticmethod
+    # def _setup_driver():
+    #     # chrome_options = Options()
+    #     # chrome_options.binary_location = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    #     # chrome_options.add_argument('lang=pt-br')
+    #     # chrome_options.add_argument(
+    #     #     f'--user-data-dir=C:\\Users\\mario\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 1')
+    #     # chrome_options.add_argument("disable-infobars")
+    #     # driver = webdriver.Chrome(
+    #     # chrome_options=chrome_options, executable_path=r'.\\chromedriver.exe')
+    #     fire_profile = os.environ['APPDATA'] + \
+    #         '\\Mozilla\\Firefox\\Profiles\\gc36qc2n.default-release'
+    #     firefox_options = fireOptions()
+    #     firefox_options.headless = False
+    #     driver = webdriver.Firefox(fire_profile, executable_path=(
+    #         os.path.dirname(os.path.realpath(__file__)) + '\\geckodriver'), options=firefox_options)
+    #     return driver
 
     def _get_element(self, xpath, attempts=5, _count=0):
         '''Safe get_element method with multiple attempts'''
         try:
             element = self.driver.find_element_by_xpath(xpath)
-            #print('Found element!')
+            # print('Found element!')
             return element
         except Exception as e:
             if _count < attempts:
                 sleep(1)
-                #print(f'Attempt {_count}')
+                # print(f'Attempt {_count}')
                 self._get_element(xpath, attempts=attempts, _count=_count+1)
             else:
                 print("Element not found")
@@ -210,41 +212,6 @@ class WhatsApp:
             (By.XPATH, "//*[contains(@class, '_33QME')]")))
         self._click("//*[contains(@class, '_33QME')]")
 
-    # def MudarNomeGrupo(self):
-    #     for grp in self.groups:
-    #         # Recuperando o grupo (clicando)
-    #         grupo = self.driver.find_element_by_xpath(f"//*[@title='{grp.name}']")
-    #         sleep(1)
-    #         grupo.click()
-
-    #         # Nome do grupo na parte superior
-    #         grupo = self.driver.find_element_by_xpath(f"//*[contains(@class, 'DP7CM')]//span[text()='{grp.name}']")
-    #         sleep(1)
-    #         grupo.click()
-
-    #         # Botão lápis editar nome do grupo
-    #         grupo = self.driver.find_element_by_xpath(f"//*[@title='Editar']/span")
-    #         sleep(1)
-    #         grupo.click()
-
-    #         # Recuperando a área para digitar o texto
-    #         group_name = self.driver.find_element_by_xpath(f"//div[text()='{grp.name}']")
-    #         sleep(1)
-    #         group_name.click()
-    #         group_name.clear()
-    #         # Digita o novo nome
-    #         action = ActionChains(self.driver)
-    #         action.send_keys(Keys.BACKSPACE)
-    #         action.perform()
-    #         sleep(1)
-    #         group_name.send_keys('Keys.BACKSPACE')
-    #         # Clicar no icone confirmar
-    #         btn_send = self.driver.find_element_by_xpath("//*[@title='Clique para salvar, Esc para cancelar']")
-    #         sleep(1)
-    #         btn_send.click()
-    #         # Esperar 5 segundos para passar para o próximo grupo
-    #         sleep(2)
-
     def PesquisaContatoOuGrupo(self, nome):
         # campo de pesquisa
         wait = WebDriverWait(self.driver, 1800)
@@ -272,7 +239,7 @@ class WhatsApp:
                             messageBox.send_keys(text, Keys.SHIFT, Keys.ENTER)
                         self._click(SEND)
                     if content['type'] == 'group_key':
-                        value = group['keys'][content['key']]
+                        value = group['key_value'][content['key']]
                         messageBox.click()
                         messageBox.send_keys(value)
                         self._click(SEND)
@@ -286,12 +253,12 @@ class WhatsApp:
 
         return schedule.CancelJob
 
-    def Campains(self):
-        with open(os.path.join('data', 'campains.json'), 'r') as json_file:
-            self.campains = json.load(json_file)
+    def scheduledMessages(self):
+        with open(os.path.join('data', 'campaigns.json'), 'r') as json_file:
+            self.campaigns = json.load(json_file)
         today = datetime.today().strftime('%d/%m/%Y')
-        for campain in self.campains:
-            if (not campain['id'] in self.scheduled_campaigns) and (campain['date'] == today):
+        for campain in self.campaigns:
+            if (not campain['id'] in self.scheduled_messages) and (campain['date'] == today):
                 now = datetime.now()
                 hour_minute = campain['time'].split(':')
                 time_to_execute = now.replace(hour=int(hour_minute[0]), minute=int(
@@ -299,7 +266,7 @@ class WhatsApp:
                 if now < time_to_execute:
                     schedule.every().day.at(campain['time']).do(
                         self.Campain, campain)
-                    self.scheduled_campaigns.append(campain['id'])
+                    self.scheduled_messages.append(campain['id'])
 
     def EnviarMensagemSuporte(self):
         self.search_contact('Mário Guimarães Beta')
@@ -396,44 +363,11 @@ class WhatsApp:
             with open(os.path.join('data', 'groups.json'), 'w') as json_file:
                 json.dump(self.groups, json_file, indent=4)
 
-    def ApiAtualizaGrupos(self):
-
-        # Colunas que podem ser atualizadas
-        # {
-        #     "name": "DESTRAVAR TESTE a",        NOME DO GRUPO (MÁXIMO 25 CARACTERES)
-        #     "seats": 200,                       LUGARES DISPONÍVEIS (CONTANDO COM OS ADMINS)
-        #     "occuped_seats": 0                  LUGARES OCUPADOS (CONTANDO COM OS ADMINS)
-        # }
-
-        # url = "https://marioguimaraes.com.br/automation/api/wagroups/1"
-        urlApi = "http://localhost/laravel-tips/adminlte/public/api/wagroups/{}"
-
-        with open(os.path.join('data', 'groups.json'), 'r') as json_file:
-            self.groups = json.load(json_file)
-        for grp in self.groups:
-            group_data = {
-                "occuped_seats": grp['occuped_seats']
-            }
-            url = urlApi.format(grp['id'])
-            response = requests.put(url=url, json=group_data)
-
-            if response.status_code >= 200 and response.status_code <= 209:
-                # Sucesso
-                print('Status Code', response.status_code)
-                print('Reason', response.reason)
-                print('Texto', response.text)
-                print('JSON', response.json())
-            else:
-                # Erros
-                print('Status Code', response.status_code)
-                print('Reason', response.reason)
-                print('Texto', response.text)
-
     def scheduler_jobs(self):
-        # schedule.every(1).minutes.do(self.Campains)
+        # schedule.every(1).minutes.do(self.campaigns)
         schedule.every(1).minutes.do(self.MonitoraGrupo)
         schedule.every(2).minutes.do(self.EnviarMensagemBoasVindas)
-        # schedule.every(5).minutes.do(self.ApiAtualizaGrupos)
+        # schedule.every(5).minutes.do(self.ApiAtualizaCampanhas)
 
         while 1:
             schedule.run_pending()
@@ -444,24 +378,27 @@ class WhatsApp:
         self.driver.close()
 
 
-bot = WhatsApp()
-wait = WebDriverWait(bot.driver, 1800)
-wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
+db.createDatabase()
 
-# bot.MudarNomeGrupo()
+bot = WhatsApp()
+# wait = WebDriverWait(bot.driver, 1800)
+# wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
+
+bot.ApiCampaignsList()
+
 # bot.EnviarMensagemSuporte()
 
-# with open(os.path.join('data', 'campains.json'), 'r') as json_file:
-#     campains = json.load(json_file)
-# bot.Campain(campains[0])
+# with open(os.path.join('data', 'campaigns.json'), 'r') as json_file:
+#     campaigns = json.load(json_file)
+# bot.Campain(campaigns[0])
 # sleep(10)
 
 # bot.CriaGrupo()
 
-# # bot.Campains()
-bot.MonitoraGrupo()
-# bot.EnviarMensagemBoasVindas()
-# # bot.ApiAtualizaGrupos()
+# # # bot.scheduledMessages()
+# bot.MonitoraGrupo()
+# # bot.EnviarMensagemBoasVindas()
+# # # bot.ApiAtualizaCampanhas()
 
 # if __name__ == "__main__":
 #     bot.scheduler_jobs()
