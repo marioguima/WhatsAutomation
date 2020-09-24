@@ -21,18 +21,10 @@ class DataBase:
         #     print(ex)
         return con
 
-    def executeCommand(self, con, DDL):
-        # try:
-        c = con.cursor()
-        c.executescript(DDL)
-        # except Error as ex:
-        #     print(ex)
-
     def createDatabase(self):
 
         vCon = self.ConexaoBanco()
 
-        # CAMPAIGNS
         sqlDDL = """
         CREATE TABLE IF NOT EXISTS campaigns (
             id               INTEGER       PRIMARY KEY,
@@ -42,28 +34,20 @@ class DataBase:
             start_monitoring DATETIME      NOT NULL,
             stop_monitoring  DATETIME      NOT NULL,
             description      TEXT,
-            created_at       DATETIME      DEFAULT (datetime()) NOT NULL,
-            updated_at       DATETIME      DEFAULT (datetime()) NOT NULL
+            created_at       DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL,
+            updated_at       DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL
                                            
         );
-        """
-        self.executeCommand(vCon, sqlDDL)
 
-        # SEGMENTATIONS
-        sqlDDL = """
         CREATE TABLE IF NOT EXISTS segmentations (
             id           INTEGER       PRIMARY KEY,
             campaigns_id INTEGER       REFERENCES campaigns (id) NOT NULL,
             name         VARCHAR (191) NOT NULL,
             description  TEXT,
-            created_at   DATETIME      DEFAULT (datetime()) NOT NULL,
-            updated_at   DATETIME      DEFAULT (datetime()) NOT NULL
+            created_at   DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL,
+            updated_at   DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL
         );
-        """
-        self.executeCommand(vCon, sqlDDL)
 
-        # WA_GROUPS
-        sqlDDL = """
         CREATE TABLE IF NOT EXISTS wa_groups (
             id               INTEGER       PRIMARY KEY,
             segmentations_id INTEGER       REFERENCES segmentations (id) NOT NULL,
@@ -73,101 +57,105 @@ class DataBase:
             edit_data        VARCHAR (20),
             send_message     VARCHAR (20),
             seats            INTEGER       NOT NULL,
-            occuped_seats    INTEGER,
             url              VARCHAR (255),
-            created_at       DATETIME      DEFAULT (datetime()) NOT NULL,
-            updated_at       DATETIME      DEFAULT (datetime()) NOT NULL
+            created_at       DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL,
+            updated_at       DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL
         );
-        """
-        self.executeCommand(vCon, sqlDDL)
 
-        # WA_GROUP_INITIAL_MEMBERS
-        sqlDDL = """
         CREATE TABLE IF NOT EXISTS wa_group_initial_members (
             id            INTEGER       PRIMARY KEY,
             wa_groups_id  INTEGER       REFERENCES wa_groups (id) NOT NULL,
             contact_name  VARCHAR (100) NOT NULL,
             administrator BOOLEAN       NOT NULL,
-            created_at    DATETIME      DEFAULT (datetime()) NOT NULL,
-            updated_at    DATETIME      DEFAULT (datetime()) NOT NULL
+            created_at    DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL,
+            updated_at    DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL
         );
-        """
-        self.executeCommand(vCon, sqlDDL)
 
-        # WA_GROUP_LEADS
-        sqlDDL = """
         CREATE TABLE IF NOT EXISTS wa_group_leads (
-            id            INTEGER       PRIMARY KEY,
+            id            INTEGER       PRIMARY KEY AUTOINCREMENT,
             wa_groups_id  INTEGER       REFERENCES wa_groups (id) NOT NULL,
             number        VARCHAR (25)  NOT NULL,
             sent_welcome  DATETIME,
             out           BOOLEAN       DEFAULT (false) NOT NULL,
-            created_at    DATETIME      DEFAULT (datetime()) NOT NULL,
-            updated_at    DATETIME      DEFAULT (datetime()) NOT NULL
+            created_at    DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL,
+            updated_at    DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL
         );
-        """
-        self.executeCommand(vCon, sqlDDL)
 
-        # TRIGGER CAMPAIGNS_UPDATED_AT
-        sqlDDL = """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_01_wa_group_leads ON wa_group_leads (
+            number
+        );
+
         CREATE TRIGGER IF NOT EXISTS campaigns_updated_at
-                AFTER UPDATE
+                AFTER UPDATE OF id,
+                                name,
+                                start,
+                                [end],
+                                start_monitoring,
+                                stop_monitoring,
+                                description
                     ON campaigns
-            FOR EACH ROW
         BEGIN
-            UPDATE campaigns SET updated_at = datetime() WHERE id = OLD.id;
+            UPDATE campaigns
+            SET updated_at = datetime('now','localtime') 
+            WHERE id = OLD.id;
         END;
-        """
-        self.executeCommand(vCon, sqlDDL)
 
-        # TRIGGER SEGMENTATIONS_UPDATED_AT
-        sqlDDL = """
         CREATE TRIGGER IF NOT EXISTS segmentations_updated_at
-                AFTER UPDATE
+                AFTER UPDATE OF id,
+                                campaigns_id,
+                                name,
+                                description
                     ON segmentations
-            FOR EACH ROW
         BEGIN
-            UPDATE segmentations SET updated_at = datetime() WHERE id = OLD.id;
+            UPDATE segmentations
+            SET updated_at = datetime('now','localtime') 
+            WHERE id = OLD.id;
         END;
-        """
-        self.executeCommand(vCon, sqlDDL)
 
-        # TRIGGER WA_GROUPS_UPDATED_AT
-        sqlDDL = """
         CREATE TRIGGER IF NOT EXISTS wa_groups_updated_at
-                AFTER UPDATE
+                AFTER UPDATE OF id,
+                                segmentations_id,
+                                name,
+                                image_url,
+                                description,
+                                edit_data,
+                                send_message,
+                                seats,
+                                url
                     ON wa_groups
-            FOR EACH ROW
         BEGIN
-            UPDATE wa_groups SET updated_at = datetime() WHERE id = OLD.id;
+            UPDATE wa_groups
+            SET updated_at = datetime('now','localtime') 
+            WHERE id = OLD.id;
         END;
-        """
-        self.executeCommand(vCon, sqlDDL)
 
-        # TRIGGER WA_GROUP_INITIAL_MEMBERS_UPDATED_AT
-        sqlDDL = """
         CREATE TRIGGER IF NOT EXISTS wa_group_initial_members_updated_at
-                AFTER UPDATE
+                AFTER UPDATE OF id,
+                                wa_groups_id,
+                                contact_name,
+                                administrator
                     ON wa_group_initial_members
-            FOR EACH ROW
         BEGIN
-            UPDATE wa_group_initial_members SET updated_at = datetime() WHERE id = OLD.id;
+            UPDATE wa_group_initial_members
+            SET updated_at = datetime('now','localtime') 
+            WHERE id = OLD.id;
         END;
-        """
-        self.executeCommand(vCon, sqlDDL)
 
-        # TRIGGER WA_GROUP_LEADS_UPDATED_AT
-        sqlDDL = """
         CREATE TRIGGER IF NOT EXISTS wa_group_leads_updated_at
-                AFTER UPDATE
+                AFTER UPDATE OF id,
+                                wa_groups_id,
+                                number,
+                                sent_welcome,
+                                out
                     ON WA_GROUP_LEADS
-            FOR EACH ROW
         BEGIN
-            UPDATE WA_GROUP_LEADS SET updated_at = datetime() WHERE id = OLD.id;
+            UPDATE wa_group_leads
+            SET updated_at = datetime('now','localtime')
+            WHERE id = OLD.id;
         END;
         """
-        self.executeCommand(vCon, sqlDDL)
-
+        cur = vCon.cursor()
+        cur.executescript(sqlDDL)
         vCon.close()
 
     def __exists(self, id, tableName):
@@ -242,7 +230,7 @@ class DataBase:
         #     print(ex)
 
     def groupStore(self, id, segmentations_id, name, image_utl, description,
-                   edit_data, send_message, seats, occuped_seats, url):
+                   edit_data, send_message, seats, url):
         sql = """INSERT INTO wa_groups (
             id,
             segmentations_id,
@@ -252,7 +240,6 @@ class DataBase:
             edit_data,
             send_message,
             seats,
-            occuped_seats,
             url
         )
         VALUES (
@@ -264,7 +251,6 @@ class DataBase:
             '""" + edit_data + """',
             '""" + send_message + """',
             """ + str(seats) + """,
-            """ + str(occuped_seats) + """,
             '""" + url + """'
         );
         """
@@ -301,6 +287,132 @@ class DataBase:
         # except Error as ex:
         #     print(ex)
 
+    def __dict_factory(self, cursor, row):
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+        return d
+
+    def getGroupsToMonitor(self, dict=False):
+        con = self.ConexaoBanco()
+        if dict:
+            con.row_factory = self.__dict_factory
+        c = con.cursor()
+        sql = """
+        SELECT t2.campaigns_id,
+            segmentations_id,
+            t1.id,
+            t1.name,
+            image_url,
+            t1.description,
+            edit_data,
+            send_message,
+            seats,
+            url
+        FROM wa_groups t1,
+            segmentations t2,
+            campaigns t3
+        WHERE t1.segmentations_id = t2.id
+        AND t2.campaigns_id = t3.id
+        AND datetime('now','localtime') BETWEEN t3.start_monitoring AND t3.stop_monitoring
+        """
+        c.execute(sql)
+        r = c.fetchall()
+        con.close()
+        return r
+
+    def getNumbersInTheGroup(self, group_id, dict=False):
+        con = self.ConexaoBanco()
+        if dict:
+            con.row_factory = self.__dict_factory
+        c = con.cursor()
+        sql = """SELECT
+            number
+        FROM wa_group_leads
+        WHERE wa_groups_id = """ + str(group_id) + """
+        AND out = false;
+        """
+        c.execute(sql)
+        r = c.fetchall()
+        con.close()
+        return r
+
+    def getNumbersLeftTheGroup(self, group_id, dict=False):
+        con = self.ConexaoBanco()
+        if dict:
+            con.row_factory = self.__dict_factory
+        c = con.cursor()
+        sql = """SELECT
+            number
+        FROM wa_group_leads
+        WHERE wa_groups_id = """ + str(group_id) + """
+        AND out = true;
+        """
+        c.execute(sql)
+        r = c.fetchall()
+        con.close()
+        return r
+
+    def setNumbersLeftTheGroup(self, group_id, numbersLeftTheGroup):
+        con = self.ConexaoBanco()
+        for number in numbersLeftTheGroup:
+            sql = """UPDATE wa_group_leads
+              SET out = 'true'
+            WHERE wa_groups_id = '""" + group_id + """' AND 
+                  number = '""" + number.strip() + """';
+            """
+            # try:
+            c = con.cursor()
+            c.execute(sql)
+            con.commit()
+            # except Error as ex:
+            #     print(ex)
+        con.close()
+
+    def setNewNumbersInTheGroup(self, group_id, newNumbersInTheGroup):
+        con = self.ConexaoBanco()
+        for number in newNumbersInTheGroup:
+            sql = """INSERT INTO wa_group_leads (
+                wa_groups_id,
+                number
+            )
+            VALUES (
+                '""" + str(group_id) + """',
+                '""" + number.strip() + """'
+            )
+            ON CONFLICT(number) 
+            DO UPDATE SET out = false;
+            """
+            # try:
+            c = con.cursor()
+            c.execute(sql)
+            con.commit()
+            # except Error as ex:
+            #     print(ex)
+        con.close()
+
 
 if __name__ == "__main__":
+    # # Retorna os grupos da campanha que estão dentro do preríodo para sererm monitorados
+    # groups = DataBase().getGroupsToMonitor()
+    # print('--------------------------------')
+    # for group in groups:
+    #     print(group)
+    #     print('--------------------------------')
+
+    # # Retorna os números que estão do grupo
+    # numbers_in_the_group = DataBase().getNumbersInTheGroup(1)
+    # print('--------------------------------')
+    # for number in numbers_in_the_group:
+    #     print(number)
+
+    # # Retorna os números que saíram do grupo
+    # numbers_left_the_group = DataBase().getNumbersLeftTheGroup(1)
+    # print('--------------------------------')
+    # for number in numbers_left_the_group:
+    #     print(number)
+
+    # DataBase().getNumbersInTheGroupDict(1)
+    # print(DataBase().getNumbersInTheGroup(group_id=1, dict=True))
+
     DataBase().createDatabase()

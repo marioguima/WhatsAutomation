@@ -16,8 +16,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import os
 import requests
-import ApiAutomation
-import database as db
+from ApiAutomation import ApiAutomation as apiAuto
+from database import DataBase as db
 
 # Parameters
 WP_LINK = 'https://web.whatsapp.com'
@@ -36,35 +36,43 @@ SEND_IMAGE = "//*[contains(@class, '_6TTaR')]"
 
 
 class WhatsApp:
-    # def __init__(self):
-    #     with open(os.path.join('data', 'groups.json'), 'r') as json_file:
-    #         self.groups = json.load(json_file)
+    def __init__(self):
+        # with open(os.path.join('data', 'groups.json'), 'r') as json_file:
+        #     self.groups = json.load(json_file)
+        self.groups = db().getGroupsToMonitor(dict=True)
 
-    #     # mensagens agendadas
-    #     self.scheduled_messages = []
+        # mensagens agendadas
+        self.scheduled_messages = []
 
-    #     self.driver = self._setup_driver()
-    #     self.driver.get(WP_LINK)
-    #     print("Por favor faça a leitura do QR Code")
-    #     # input()
+        self.driver = self._setup_driver()
+        self.driver.get(WP_LINK)
+        print("Por favor faça a leitura do QR Code")
+        # input()
 
-    # @staticmethod
-    # def _setup_driver():
-    #     # chrome_options = Options()
-    #     # chrome_options.binary_location = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-    #     # chrome_options.add_argument('lang=pt-br')
-    #     # chrome_options.add_argument(
-    #     #     f'--user-data-dir=C:\\Users\\mario\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 1')
-    #     # chrome_options.add_argument("disable-infobars")
-    #     # driver = webdriver.Chrome(
-    #     # chrome_options=chrome_options, executable_path=r'.\\chromedriver.exe')
-    #     fire_profile = os.environ['APPDATA'] + \
-    #         '\\Mozilla\\Firefox\\Profiles\\gc36qc2n.default-release'
-    #     firefox_options = fireOptions()
-    #     firefox_options.headless = False
-    #     driver = webdriver.Firefox(fire_profile, executable_path=(
-    #         os.path.dirname(os.path.realpath(__file__)) + '\\geckodriver'), options=firefox_options)
-    #     return driver
+    @staticmethod
+    def _setup_driver():
+        # chrome_options = Options()
+        # chrome_options.binary_location = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+        # chrome_options.add_argument('lang=pt-br')
+        # chrome_options.add_argument(
+        #     f'--user-data-dir=C:\\Users\\mario\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 1')
+        # chrome_options.add_argument("disable-infobars")
+
+        # TESTAR QUAL DOIS DOIS MAXIMIZA
+        # chrome_options.addArguments("--start-maximized");
+        # chrome_options.addArguments("start-maximized");
+        # driver = webdriver.Chrome(
+        # chrome_options=chrome_options, executable_path=r'.\\chromedriver.exe')
+
+        # Firefox
+        fire_profile = os.environ['APPDATA'] + \
+            '\\Mozilla\\Firefox\\Profiles\\gc36qc2n.default-release'
+        firefox_options = fireOptions()
+        firefox_options.headless = False
+        driver = webdriver.Firefox(fire_profile, executable_path=(
+            os.path.dirname(os.path.realpath(__file__)) + '\\geckodriver'), options=firefox_options)
+        driver.maximize_window()
+        return driver
 
     def _get_element(self, xpath, attempts=5, _count=0):
         '''Safe get_element method with multiple attempts'''
@@ -328,8 +336,10 @@ class WhatsApp:
         # sleep(2)
 
     def MonitoraGrupo(self):
-        with open(os.path.join('data', 'groups.json'), 'r') as json_file:
-            self.groups = json.load(json_file)
+        # with open(os.path.join('data', 'groups.json'), 'r') as json_file:
+        #     self.groups = json.load(json_file)
+        self.groups = db().getGroupsToMonitor(dict=True)
+
         for grp in self.groups:
             self.PesquisaContatoOuGrupo(grp['name'])
 
@@ -339,29 +349,68 @@ class WhatsApp:
             # Apareça Você na lista de membros do grupo
             wait.until(EC.visibility_of_element_located(
                 (By.XPATH, "//*[@class='_2ruUq _3xjAz']//span[contains(text(),'Você')]")))
+
             # obter números dos membros
             group_numbers = self.get_group_numbers()
-            numbers_group_now = [
+            numbersInTheGroupNow = [
                 number for number in group_numbers if "+" in number]
 
+            # # Retorna os números que estão do grupo
+            numbersInTheGroupBefore = db().getNumbersInTheGroup(
+                group_id=grp['id'], dict=True)
+
+            # Retorna os números que saíram do grupo
+            numbersLeftTheGroup = db().getNumbersLeftTheGroup(
+                group_id=grp['id'], dict=True)
+
             # números que saíram do grupo
-            numbers_left_the_group = list(
-                set(grp['numbers_group']) - set(numbers_group_now))
-            grp['numbers_left'] = grp['numbers_left'] + numbers_left_the_group
+            numbers_left_the_group_now = list(
+                set(numbersInTheGroupBefore) - set(numbersInTheGroupNow))
+            numbersLeftTheGroup = numbersLeftTheGroup + numbers_left_the_group_now
 
-            new_numbers = list(set(numbers_group_now) -
-                               set(grp['numbers_group']))
-            # new_numbers = [number for number in new_numbers if "+" in number]
+            # Atualizar a lista de numeros que sairam do grupo
+            db().setNumbersLeftTheGroup(grp['id'], numbersLeftTheGroup)
 
-            grp['numbers_group'] = numbers_group_now
+            newNumbersInTheGroup = list(
+                set(numbersInTheGroupNow) - set(numbersInTheGroupBefore))
+            newNumbersInTheGroup = list(
+                set(newNumbersInTheGroup) - set(numbersLeftTheGroup))
 
-            grp['occuped_seats'] = len(group_numbers)
-            grp['new_numbers'] = list(set(grp['new_numbers'] + new_numbers))
-            grp['new_numbers'] = list(
-                set(grp['new_numbers']) - set(grp['numbers_left']))
-            # atualizar o groups.json
-            with open(os.path.join('data', 'groups.json'), 'w') as json_file:
-                json.dump(self.groups, json_file, indent=4)
+            # Atualizar a lista de numeros que entrarm do grupo
+            db().setNewNumbersInTheGroup(grp['id'], newNumbersInTheGroup)
+
+            # new_numbers = list(set(numbersInTheGroupNow) -
+            #                    set(numbersInTheGroupBefore))
+
+            # numbersInTheGroupBefore = numbersInTheGroupNow
+
+            # grp['new_numbers'] = list(set(grp['new_numbers'] + new_numbers))
+            # grp['new_numbers'] = list(
+            #     set(grp['new_numbers']) - set(numbersLeftTheGroup))
+
+            # código antigo aqui em baixo
+            # v
+            # v
+            # v
+
+            # # números que saíram do grupo
+            # numbers_left_the_group = list(
+            #     set(grp['numbers_group']) - set(numbers_group_now))
+            # grp['numbers_left'] = grp['numbers_left'] + numbers_left_the_group
+
+            # new_numbers = list(set(numbers_group_now) -
+            #                    set(grp['numbers_group']))
+            # # new_numbers = [number for number in new_numbers if "+" in number]
+
+            # grp['numbers_group'] = numbers_group_now
+
+            # grp['occuped_seats'] = len(group_numbers)
+            # grp['new_numbers'] = list(set(grp['new_numbers'] + new_numbers))
+            # grp['new_numbers'] = list(
+            #     set(grp['new_numbers']) - set(grp['numbers_left']))
+            # # atualizar o groups.json
+            # with open(os.path.join('data', 'groups.json'), 'w') as json_file:
+            #     json.dump(self.groups, json_file, indent=4)
 
     def scheduler_jobs(self):
         # schedule.every(1).minutes.do(self.campaigns)
@@ -378,13 +427,13 @@ class WhatsApp:
         self.driver.close()
 
 
-db.createDatabase()
+db().createDatabase()
+
+apiAuto().getUpdatesCampaigns()
 
 bot = WhatsApp()
-# wait = WebDriverWait(bot.driver, 1800)
-# wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
-
-bot.ApiCampaignsList()
+wait = WebDriverWait(bot.driver, 1800)
+wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
 
 # bot.EnviarMensagemSuporte()
 
@@ -396,7 +445,7 @@ bot.ApiCampaignsList()
 # bot.CriaGrupo()
 
 # # # bot.scheduledMessages()
-# bot.MonitoraGrupo()
+bot.MonitoraGrupo()
 # # bot.EnviarMensagemBoasVindas()
 # # # bot.ApiAtualizaCampanhas()
 

@@ -47,7 +47,6 @@ class ApiAutomation:
                                             groupWeb['edit_data'],
                                             groupWeb['send_message'],
                                             groupWeb['seats'],
-                                            groupWeb['occuped_seats'],
                                             groupWeb['url'])
 
                         for groupInitialMembersWeb in groupWeb['initial_members']:
