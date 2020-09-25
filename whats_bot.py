@@ -295,7 +295,47 @@ class WhatsApp:
 
         self.send_message(mensagem)
 
-    def EnviarMensagemBoasVindas(self):
+    # def EnviarMensagemBoasVindas(self):
+    #     for grp in self.groups:
+    #         for number in grp['new_numbers']:
+    #             number_without_spaces = number.strip()
+    #             # encontrar pessoa
+    #             contact_url = "https://web.whatsapp.com/send?phone={}".format(
+    #                 number_without_spaces.replace("+", ""))
+    #             self.driver.get(contact_url)
+    #             wait = WebDriverWait(self.driver, 1800)
+    #             wait.until(EC.element_to_be_clickable((By.XPATH, MESSAGE_BOX)))
+    #             while self.hasXpath("//*[@class='_2J60S' and contains(@title,'Carregando mensagens')]"):
+    #                 sleep(1)
+
+    #             # se nunca falei com a pessoa
+    #             if not self.hasXpath('//*[contains(@class,"message-out focusable-list-item")]'):
+    #                 # Bom dia! / Boa tarde! / Boa noite!
+    #                 self.EnviarSaudacao()
+
+    #                 el = self._get_element(MESSAGE_BOX)
+    #                 # envia mensagem de boas-vindas
+    #                 with open(os.path.join('data', 'welcome.json'), 'r') as json_file:
+    #                     boas_vindas = json.load(json_file)
+    #                 for message in boas_vindas:
+    #                     el.click()
+    #                     for text in message:
+    #                         el.send_keys(text)
+    #                         el.send_keys(Keys.SHIFT, Keys.ENTER)
+    #                     self._click(SEND)
+
+    #             grp['new_numbers'].remove(number)
+    #             # atualizar o groups.json
+    #             with open(os.path.join('data', 'groups.json'), 'w') as json_file:
+    #                 json.dump(self.groups, json_file, indent=4)
+
+    #         # encontrar o grupo para não ficar com a última pessoa ativa, dentro do chat com a pessoa
+    #         self.PesquisaContatoOuGrupo(grp['name'])
+
+    #     # self.search_contact('Mário Guimarães Beta')
+    #     # sleep(2)
+
+    def SendWelcomeMessage(self):
         for grp in self.groups:
             for number in grp['new_numbers']:
                 number_without_spaces = number.strip()
@@ -332,12 +372,40 @@ class WhatsApp:
             # encontrar o grupo para não ficar com a última pessoa ativa, dentro do chat com a pessoa
             self.PesquisaContatoOuGrupo(grp['name'])
 
+        print('campain = {}'.format(campain['id']))
+        send = campain['send']
+        for group in self.groups:
+            if group['id'] in campain['to']:
+                self.PesquisaContatoOuGrupo(group['name'])
+
+                wait = WebDriverWait(self.driver, 1800)
+                # Aguarda a Caixa de envio de mensagem estar pronta para ser utilizada
+                wait.until(EC.element_to_be_clickable((By.XPATH, MESSAGE_BOX)))
+
+                messageBox = self._get_element(MESSAGE_BOX)
+                for content in send:
+                    if content['type'] == 'text':
+                        messageBox.click()
+                        for text in content['text']:
+                            messageBox.send_keys(text, Keys.SHIFT, Keys.ENTER)
+                        self._click(SEND)
+                    if content['type'] == 'group_key':
+                        value = group['key_value'][content['key']]
+                        messageBox.click()
+                        messageBox.send_keys(value)
+                        self._click(SEND)
+                    if content['type'] in ['image', 'document', 'video', 'audio']:
+                        path = content['path']
+                        self._click(CLIP_ICON)
+                        self._get_element(IMAGE_BUTTON).send_keys(path)
+                        wait.until(EC.element_to_be_clickable(
+                            (By.XPATH, SEND_IMAGE)))
+                        self._click(SEND_IMAGE)
+
         # self.search_contact('Mário Guimarães Beta')
         # sleep(2)
 
-    def MonitoraGrupo(self):
-        # with open(os.path.join('data', 'groups.json'), 'r') as json_file:
-        #     self.groups = json.load(json_file)
+    def GroupsMonitor(self):
         self.groups = db().getGroupsToMonitor(dict=True)
 
         for grp in self.groups:
@@ -379,43 +447,10 @@ class WhatsApp:
             # Atualizar a lista de numeros que entrarm do grupo
             db().setNewNumbersInTheGroup(grp['id'], newNumbersInTheGroup)
 
-            # new_numbers = list(set(numbersInTheGroupNow) -
-            #                    set(numbersInTheGroupBefore))
-
-            # numbersInTheGroupBefore = numbersInTheGroupNow
-
-            # grp['new_numbers'] = list(set(grp['new_numbers'] + new_numbers))
-            # grp['new_numbers'] = list(
-            #     set(grp['new_numbers']) - set(numbersLeftTheGroup))
-
-            # código antigo aqui em baixo
-            # v
-            # v
-            # v
-
-            # # números que saíram do grupo
-            # numbers_left_the_group = list(
-            #     set(grp['numbers_group']) - set(numbers_group_now))
-            # grp['numbers_left'] = grp['numbers_left'] + numbers_left_the_group
-
-            # new_numbers = list(set(numbers_group_now) -
-            #                    set(grp['numbers_group']))
-            # # new_numbers = [number for number in new_numbers if "+" in number]
-
-            # grp['numbers_group'] = numbers_group_now
-
-            # grp['occuped_seats'] = len(group_numbers)
-            # grp['new_numbers'] = list(set(grp['new_numbers'] + new_numbers))
-            # grp['new_numbers'] = list(
-            #     set(grp['new_numbers']) - set(grp['numbers_left']))
-            # # atualizar o groups.json
-            # with open(os.path.join('data', 'groups.json'), 'w') as json_file:
-            #     json.dump(self.groups, json_file, indent=4)
-
     def scheduler_jobs(self):
         # schedule.every(1).minutes.do(self.campaigns)
-        schedule.every(1).minutes.do(self.MonitoraGrupo)
-        schedule.every(2).minutes.do(self.EnviarMensagemBoasVindas)
+        schedule.every(1).minutes.do(self.GroupsMonitor)
+        schedule.every(2).minutes.do(self.SendWelcomeMessage)
         # schedule.every(5).minutes.do(self.ApiAtualizaCampanhas)
 
         while 1:
@@ -445,8 +480,8 @@ wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
 # bot.CriaGrupo()
 
 # # # bot.scheduledMessages()
-bot.MonitoraGrupo()
-# # bot.EnviarMensagemBoasVindas()
+bot.GroupsMonitor()
+# # bot.SendWelcomeMessage()
 # # # bot.ApiAtualizaCampanhas()
 
 # if __name__ == "__main__":

@@ -29,8 +29,8 @@ class DataBase:
         CREATE TABLE IF NOT EXISTS campaigns (
             id               INTEGER       PRIMARY KEY,
             name             VARCHAR (191) NOT NULL,
-            start            DATETIME      NOT NULL,
-            [end]            DATETIME      NOT NULL,
+            start            DATE          NOT NULL,
+            [end]            DATE          NOT NULL,
             start_monitoring DATETIME      NOT NULL,
             stop_monitoring  DATETIME      NOT NULL,
             description      TEXT,
@@ -83,6 +83,42 @@ class DataBase:
 
         CREATE UNIQUE INDEX IF NOT EXISTS idx_01_wa_group_leads ON wa_group_leads (
             number
+        );
+
+        CREATE TABLE IF NOT EXISTS messages (
+            id         INTEGER       PRIMARY KEY
+                                    NOT NULL,
+            name       VARCHAR (255) NOT NULL
+                                    UNIQUE,
+            created_at DATETIME      NOT NULL
+                                    DEFAULT (datetime('now', 'localtime') ),
+            updated_at DATETIME      DEFAULT (datetime('now', 'localtime') ) 
+                                    NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS message_items (
+            id          INTEGER      PRIMARY KEY
+                                    NOT NULL,
+            messages_id INTEGER      REFERENCES messages (id) ON DELETE CASCADE
+                                    NOT NULL,
+            type        VARCHAR (20) NOT NULL
+                                    CHECK (type IN ('text', 'image', 'document', 'video', 'audio') ),
+            value       TEXT,
+            created_at  DATETIME     NOT NULL
+                                    DEFAULT (datetime('now', 'localtime') ),
+            updated_at  DATETIME     NOT NULL
+                                    DEFAULT (datetime('now', 'localtime') ) 
+        );
+
+        CREATE TABLE IF NOT EXISTS campaign_messages (
+            campaigns_id INTEGER  NOT NULL
+                                UNIQUE,
+            messages_id  INTEGER  NOT NULL
+                                UNIQUE,
+            created_at   DATETIME NOT NULL
+                                DEFAULT (datetime('now', 'localtime') ),
+            updated_at   DATETIME NOT NULL
+                                DEFAULT (datetime('now', 'localtime') ) 
         );
 
         CREATE TRIGGER IF NOT EXISTS campaigns_updated_at
@@ -151,6 +187,37 @@ class DataBase:
         BEGIN
             UPDATE wa_group_leads
             SET updated_at = datetime('now','localtime')
+            WHERE id = OLD.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS messages_updated_at
+                AFTER UPDATE OF id
+                    ON messages
+        BEGIN
+            UPDATE messages
+            SET updated_at = datetime('now','localtime') 
+            WHERE id = OLD.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS message_items_updated_at
+                AFTER UPDATE OF id,
+                                messages_id,
+                                type,
+                                value
+                    ON message_items
+        BEGIN
+            UPDATE message_items
+            SET updated_at = datetime('now', 'localtime') 
+            WHERE id = OLD.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS campaign_messages_updated_at
+                AFTER UPDATE OF campaigns_id,
+                                messages_id
+                    ON campaign_messages
+        BEGIN
+            UPDATE campaign_messages
+            SET updated_at = datetime('now', 'localtime') 
             WHERE id = OLD.id;
         END;
         """
