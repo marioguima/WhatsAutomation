@@ -354,6 +354,50 @@ class DataBase:
         # except Error as ex:
         #     print(ex)
 
+    def messageStore(self, id, name):
+        sql = """INSERT INTO messages (
+            id,
+            name
+        )
+        VALUES (
+            """ + str(id) + """,
+            """ + str(name) + """
+        );
+        """
+
+        # try:
+        con = self.ConexaoBanco()
+        c = con.cursor()
+        c.execute(sql)
+        con.commit()
+        con.close()
+        # except Error as ex:
+        #     print(ex)
+
+    def messageItemsStore(self, id, messages_id, type, value):
+        sql = """INSERT INTO wa_group_initial_members (
+            id,
+            messages_id,
+            type,
+            value
+        )
+        VALUES (
+            """ + str(id) + """,
+            """ + str(messages_id) + """,
+            """ + str(type) + """,
+            """ + str(value) + """
+        );
+        """
+
+        # try:
+        con = self.ConexaoBanco()
+        c = con.cursor()
+        c.execute(sql)
+        con.commit()
+        con.close()
+        # except Error as ex:
+        #     print(ex)
+
     def __dict_factory(self, cursor, row):
         d = {}
         for idx, col in enumerate(cursor.description):
