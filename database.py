@@ -390,8 +390,8 @@ class DataBase:
 
     def getNumbersInTheGroup(self, group_id, dict=False):
         con = self.ConexaoBanco()
-        if dict:
-            con.row_factory = self.__dict_factory
+        # if dict:
+        #     con.row_factory = self.__dict_factory
         c = con.cursor()
         sql = """SELECT
             number
@@ -402,12 +402,12 @@ class DataBase:
         c.execute(sql)
         r = c.fetchall()
         con.close()
-        return r
+        return [number[0] for number in r]
 
     def getNumbersLeftTheGroup(self, group_id, dict=False):
         con = self.ConexaoBanco()
-        if dict:
-            con.row_factory = self.__dict_factory
+        # if dict:
+        #     con.row_factory = self.__dict_factory
         c = con.cursor()
         sql = """SELECT
             number
@@ -418,7 +418,7 @@ class DataBase:
         c.execute(sql)
         r = c.fetchall()
         con.close()
-        return r
+        return [number[0] for number in r]
 
     def setNumbersLeftTheGroup(self, group_id, numbersLeftTheGroup):
         con = self.ConexaoBanco()

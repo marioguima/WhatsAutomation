@@ -20,7 +20,7 @@ class ApiAutomation:
         if response.status_code >= 200 and response.status_code <= 209:
             campaignsWeb = response.json()
 
-            for campaignWeb in campaignsWeb['campaigns']:
+            for campaignWeb in campaignsWeb['data']:
                 if not db().existsCampaign(campaignWeb['id']):
                     db().campaignStore(campaignWeb['id'],
                                        campaignWeb['name'],
@@ -40,7 +40,7 @@ class ApiAutomation:
                     for groupWeb in segmentationWeb['groups']:
                         if not db().existsGroup(groupWeb['id']):
                             db().groupStore(groupWeb['id'],
-                                            groupWeb['segmentations_id'],
+                                            segmentationWeb['id'],
                                             groupWeb['name'],
                                             groupWeb['full_image_path'],
                                             groupWeb['description'],
@@ -52,7 +52,7 @@ class ApiAutomation:
                         for groupInitialMembersWeb in groupWeb['initial_members']:
                             if not db().existsGroupInitialMembers(groupInitialMembersWeb['id']):
                                 db().groupInitialMembersStore(groupInitialMembersWeb['id'],
-                                                              groupInitialMembersWeb['wa_groups_id'],
+                                                              groupWeb['id'],
                                                               groupInitialMembersWeb['contact_name'],
                                                               groupInitialMembersWeb['administrator'])
 

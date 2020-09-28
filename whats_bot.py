@@ -421,7 +421,7 @@ class WhatsApp:
             # obter números dos membros
             group_numbers = self.get_group_numbers()
             numbersInTheGroupNow = [
-                number for number in group_numbers if "+" in number]
+                number.strip() for number in group_numbers if "+" in number]
 
             # # Retorna os números que estão do grupo
             numbersInTheGroupBefore = db().getNumbersInTheGroup(
