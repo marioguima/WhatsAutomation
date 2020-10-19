@@ -13,7 +13,7 @@ class ApiAutomation:
         self.imagePath = os.path.join(
             os.path.dirname(__file__), 'data', 'img')
 
-    def getUpdatesCampaigns(self):
+    def updatesCampaignsIndex(self):
         urlApi = os.path.join(self.urlBaseApi, "campaigns")
         response = requests.get(url=urlApi)
 
@@ -33,7 +33,7 @@ class ApiAutomation:
                 for segmentationWeb in campaignWeb['segmentations']:
                     if not db().existsSegmentation(segmentationWeb['id']):
                         db().segmentationStore(segmentationWeb['id'],
-                                               segmentationWeb['campaigns_id'],
+                                               segmentationWeb['campaign_id'],
                                                segmentationWeb['name'],
                                                segmentationWeb['description'])
 
@@ -56,6 +56,30 @@ class ApiAutomation:
                                                               groupInitialMembersWeb['contact_name'],
                                                               groupInitialMembersWeb['administrator'])
 
+                for messageWeb in campaignWeb['messages']:
+                    if not db().existsMessage(messageWeb['id']):
+                        db().messageStore(messageWeb['id'],
+                                          messageWeb['name'])
+
+                    db().campaignMessageDestroy(campaignWeb['id'],
+                                                messageWeb['id'])
+
+                    db().campaignMessageStore(campaignWeb['id'],
+                                              messageWeb['id'],
+                                              messageWeb['shot'],
+                                              messageWeb['scheduler_date'],
+                                              messageWeb['quantity'],
+                                              messageWeb['unit'],
+                                              messageWeb['trigger'],
+                                              messageWeb['moment'])
+
+                    for messageItemWeb in messageWeb['items']:
+                        if not db().existsMessageItem(messageItemWeb['id']):
+                            db().messageItemsStore(messageItemWeb['id'],
+                                                   messageWeb['id'],
+                                                   messageItemWeb['type'],
+                                                   messageItemWeb['value'])
+
         else:
             # Erros
             print('Status Code', response.status_code)
@@ -64,7 +88,7 @@ class ApiAutomation:
 
     # Obtem os dados de uma campanha específica
 
-    def getCampaign(self):
+    def campaignShow(self):
         campaignsFileName = 'campaigns.json'
         # urlApi = "https://marioguimaraes.com.br/automation/api/campaigns"
         urlApi = "http://localhost/laravel-tips/adminlte/api/campaigns"
@@ -128,4 +152,4 @@ class ApiAutomation:
 
 
 if __name__ == "__main__":
-    ApiAutomation().getUpdatesCampaigns()
+    ApiAutomation().updatesCampaignsIndex()

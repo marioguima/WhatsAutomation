@@ -41,7 +41,7 @@ class DataBase:
 
         CREATE TABLE IF NOT EXISTS segmentations (
             id           INTEGER       PRIMARY KEY,
-            campaigns_id INTEGER       REFERENCES campaigns (id) NOT NULL,
+            campaign_id  INTEGER       REFERENCES campaigns (id) NOT NULL,
             name         VARCHAR (191) NOT NULL,
             description  TEXT,
             created_at   DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL,
@@ -50,7 +50,7 @@ class DataBase:
 
         CREATE TABLE IF NOT EXISTS wa_groups (
             id               INTEGER       PRIMARY KEY,
-            segmentations_id INTEGER       REFERENCES segmentations (id) NOT NULL,
+            segmentation_id  INTEGER       REFERENCES segmentations (id) NOT NULL,
             name             VARCHAR (191) NOT NULL,
             image_url        VARCHAR (255),
             description      TEXT,
@@ -64,7 +64,7 @@ class DataBase:
 
         CREATE TABLE IF NOT EXISTS wa_group_initial_members (
             id            INTEGER       PRIMARY KEY,
-            wa_groups_id  INTEGER       REFERENCES wa_groups (id) NOT NULL,
+            wa_group_id   INTEGER       REFERENCES wa_groups (id) NOT NULL,
             contact_name  VARCHAR (100) NOT NULL,
             administrator BOOLEAN       NOT NULL,
             created_at    DATETIME      DEFAULT (datetime('now','localtime')) NOT NULL,
@@ -73,7 +73,7 @@ class DataBase:
 
         CREATE TABLE IF NOT EXISTS wa_group_leads (
             id            INTEGER       PRIMARY KEY AUTOINCREMENT,
-            wa_groups_id  INTEGER       REFERENCES wa_groups (id) NOT NULL,
+            wa_group_id   INTEGER       REFERENCES wa_groups (id) NOT NULL,
             number        VARCHAR (25)  NOT NULL,
             sent_welcome  DATETIME,
             out           BOOLEAN       DEFAULT (false) NOT NULL,
@@ -99,7 +99,7 @@ class DataBase:
         CREATE TABLE IF NOT EXISTS message_items (
             id          INTEGER      PRIMARY KEY
                                     NOT NULL,
-            messages_id INTEGER      REFERENCES messages (id) ON DELETE CASCADE
+            message_id  INTEGER      REFERENCES messages (id) ON DELETE CASCADE
                                     NOT NULL,
             type        VARCHAR (20) NOT NULL
                                     CHECK (type IN ('text', 'image', 'document', 'video', 'audio') ),
@@ -110,15 +110,24 @@ class DataBase:
                                     DEFAULT (datetime('now', 'localtime') ) 
         );
 
-        CREATE TABLE IF NOT EXISTS campaign_messages (
-            campaigns_id INTEGER  NOT NULL
-                                UNIQUE,
-            messages_id  INTEGER  NOT NULL
-                                UNIQUE,
-            created_at   DATETIME NOT NULL
-                                DEFAULT (datetime('now', 'localtime') ),
-            updated_at   DATETIME NOT NULL
-                                DEFAULT (datetime('now', 'localtime') ) 
+        CREATE TABLE IF NOT EXISTS campaign_message (
+            id             INTEGER      PRIMARY KEY,
+            campaign_id    INTEGER      NOT NULL
+                                        UNIQUE
+                                        REFERENCES campaigns (id),
+            message_id     INTEGER      NOT NULL
+                                        UNIQUE
+                                        REFERENCES messages (id),
+            shot           STRING (20)  CHECK (shot IN ('immediate', 'date', 'relative') ),
+            scheduler_date DATETIME,
+            quantity       INTEGER,
+            unit                        CHECK (unit IN ('minutes', 'hours', 'days') ),
+            [trigger]      VARCHAR (10) CHECK ([trigger] IN ('before', 'after') ),
+            moment         VARCHAR (20) CHECK (moment IN ('start_campaign', 'end_campaign', 'start_monitoring', 'stop_monitoring') ),
+            created_at     DATETIME     NOT NULL
+                                        DEFAULT (datetime('now', 'localtime') ),
+            updated_at     DATETIME     NOT NULL
+                                        DEFAULT (datetime('now', 'localtime') ) 
         );
 
         CREATE TRIGGER IF NOT EXISTS campaigns_updated_at
@@ -138,7 +147,7 @@ class DataBase:
 
         CREATE TRIGGER IF NOT EXISTS segmentations_updated_at
                 AFTER UPDATE OF id,
-                                campaigns_id,
+                                campaign_id,
                                 name,
                                 description
                     ON segmentations
@@ -150,7 +159,7 @@ class DataBase:
 
         CREATE TRIGGER IF NOT EXISTS wa_groups_updated_at
                 AFTER UPDATE OF id,
-                                segmentations_id,
+                                segmentation_id,
                                 name,
                                 image_url,
                                 description,
@@ -167,7 +176,7 @@ class DataBase:
 
         CREATE TRIGGER IF NOT EXISTS wa_group_initial_members_updated_at
                 AFTER UPDATE OF id,
-                                wa_groups_id,
+                                wa_group_id,
                                 contact_name,
                                 administrator
                     ON wa_group_initial_members
@@ -179,7 +188,7 @@ class DataBase:
 
         CREATE TRIGGER IF NOT EXISTS wa_group_leads_updated_at
                 AFTER UPDATE OF id,
-                                wa_groups_id,
+                                wa_group_id,
                                 number,
                                 sent_welcome,
                                 out
@@ -201,7 +210,7 @@ class DataBase:
 
         CREATE TRIGGER IF NOT EXISTS message_items_updated_at
                 AFTER UPDATE OF id,
-                                messages_id,
+                                message_id,
                                 type,
                                 value
                     ON message_items
@@ -211,12 +220,12 @@ class DataBase:
             WHERE id = OLD.id;
         END;
 
-        CREATE TRIGGER IF NOT EXISTS campaign_messages_updated_at
-                AFTER UPDATE OF campaigns_id,
-                                messages_id
-                    ON campaign_messages
+        CREATE TRIGGER IF NOT EXISTS campaign_message_updated_at
+                AFTER UPDATE OF campaign_id,
+                                message_id
+                    ON campaign_message
         BEGIN
-            UPDATE campaign_messages
+            UPDATE campaign_message
             SET updated_at = datetime('now', 'localtime') 
             WHERE id = OLD.id;
         END;
@@ -243,6 +252,26 @@ class DataBase:
 
     def existsGroupInitialMembers(self, id):
         return self.__exists(id, "wa_group_initial_members")
+
+    def existsMessage(self, id):
+        return self.__exists(id, "messages")
+
+    def existsMessageItem(self, id):
+        return self.__exists(id, "message_items")
+
+    def campaignMessageDestroy(self, campaign_id, message_id):
+        sql = """DELETE FROM campaign_message
+        WHERE campaign_id = '""" + str(campaign_id) + """' AND 
+                message_id = '""" + str(message_id) + """';
+        """
+        # try:
+        con = self.ConexaoBanco()
+        c = con.cursor()
+        c.execute(sql)
+        con.commit()
+        con.close()
+        # except Error as ex:
+        #     print(ex)
 
     def campaignStore(self, id, name, start, end, start_monitoring, stop_monitoring, description):
         sql = """INSERT INTO campaigns (
@@ -273,16 +302,16 @@ class DataBase:
         # except Error as ex:
         #     print(ex)
 
-    def segmentationStore(self, id, campaigns_id, name, description):
+    def segmentationStore(self, id, campaign_id, name, description):
         sql = """INSERT INTO segmentations (
             id,
-            campaigns_id,
+            campaign_id,
             name,
             description
         )
         VALUES (
             """ + str(id) + """,
-            """ + str(campaigns_id) + """,            
+            """ + str(campaign_id) + """,            
             '""" + name + """',
             '""" + description + """'
         );
@@ -296,11 +325,11 @@ class DataBase:
         # except Error as ex:
         #     print(ex)
 
-    def groupStore(self, id, segmentations_id, name, image_utl, description,
+    def groupStore(self, id, segmentation_id, name, image_utl, description,
                    edit_data, send_message, seats, url):
         sql = """INSERT INTO wa_groups (
             id,
-            segmentations_id,
+            segmentation_id,
             name,
             image_url,
             description,
@@ -311,7 +340,7 @@ class DataBase:
         )
         VALUES (
             """ + str(id) + """,
-            """ + str(segmentations_id) + """,
+            """ + str(segmentation_id) + """,
             '""" + name + """',
             '""" + image_utl + """',
             '""" + description + """',
@@ -330,19 +359,57 @@ class DataBase:
         # except Error as ex:
         #     print(ex)
 
-    def groupInitialMembersStore(self, id, wa_groups_id, contact_name, administrator):
+    def groupInitialMembersStore(self, id, wa_group_id, contact_name, administrator):
         sql = """INSERT INTO wa_group_initial_members (
             id,
-            wa_groups_id,
+            wa_group_id,
             contact_name,
             administrator
         )
         VALUES (
             """ + str(id) + """,
-            """ + str(wa_groups_id) + """,
+            """ + str(wa_group_id) + """,
             '""" + contact_name + """',
             """ + str(administrator) + """
         );
+        """
+
+        # try:
+        con = self.ConexaoBanco()
+        c = con.cursor()
+        c.execute(sql)
+        con.commit()
+        con.close()
+        # except Error as ex:
+        #     print(ex)
+
+    def __nullValue(self, value):
+        if value.strip() == '':
+            return 'null'
+        else:
+            return value
+
+    def campaignMessageStore(self, campaign_id, message_id, shot, scheduler_date, quantity, unit, trigger, moment):
+        sql = """INSERT INTO campaign_message (
+                                 campaign_id,
+                                 message_id,
+                                 shot,
+                                 scheduler_date,
+                                 quantity,
+                                 unit,
+                                 [trigger],
+                                 moment
+                             )
+                             VALUES (
+                                 """ + str(campaign_id) + """,
+                                 """ + str(message_id) + """,
+                                 '""" + shot + """',
+                                 """ + self.__nullValue(scheduler_date) + """,
+                                 """ + self.__nullValue(str(quantity)) + """,
+                                 """ + self.__nullValue(unit) + """,
+                                 """ + self.__nullValue(trigger) + """,
+                                 """ + self.__nullValue(moment) + """
+                             );
         """
 
         # try:
@@ -361,7 +428,7 @@ class DataBase:
         )
         VALUES (
             """ + str(id) + """,
-            """ + str(name) + """
+            '""" + name + """'
         );
         """
 
@@ -374,18 +441,18 @@ class DataBase:
         # except Error as ex:
         #     print(ex)
 
-    def messageItemsStore(self, id, messages_id, type, value):
-        sql = """INSERT INTO wa_group_initial_members (
+    def messageItemsStore(self, id, message_id, type, value):
+        sql = """INSERT INTO message_items (
             id,
-            messages_id,
+            message_id,
             type,
             value
         )
         VALUES (
             """ + str(id) + """,
-            """ + str(messages_id) + """,
-            """ + str(type) + """,
-            """ + str(value) + """
+            """ + str(message_id) + """,
+            '""" + type + """',
+            '""" + value + """'
         );
         """
 
@@ -404,14 +471,14 @@ class DataBase:
             d[col[0]] = row[idx]
         return d
 
-    def getGroupsToMonitor(self, dict=False):
+    def groupsToMonitorIndex(self, dict=False):
         con = self.ConexaoBanco()
         if dict:
             con.row_factory = self.__dict_factory
         c = con.cursor()
         sql = """
-        SELECT t2.campaigns_id,
-            segmentations_id,
+        SELECT t2.campaign_id,
+            segmentation_id,
             t1.id,
             t1.name,
             image_url,
@@ -423,8 +490,8 @@ class DataBase:
         FROM wa_groups t1,
             segmentations t2,
             campaigns t3
-        WHERE t1.segmentations_id = t2.id
-        AND t2.campaigns_id = t3.id
+        WHERE t1.segmentation_id = t2.id
+        AND t2.campaign_id = t3.id
         AND datetime('now','localtime') BETWEEN t3.start_monitoring AND t3.stop_monitoring
         """
         c.execute(sql)
@@ -432,44 +499,40 @@ class DataBase:
         con.close()
         return r
 
-    def getNumbersInTheGroup(self, group_id, dict=False):
+    def numbersInTheGroupIndex(self, group_id):
         con = self.ConexaoBanco()
-        # if dict:
-        #     con.row_factory = self.__dict_factory
         c = con.cursor()
         sql = """SELECT
             number
         FROM wa_group_leads
-        WHERE wa_groups_id = """ + str(group_id) + """
-        AND out = false;
+        WHERE wa_group_id = """ + str(group_id) + """
+        AND out = 0;
         """
         c.execute(sql)
         r = c.fetchall()
         con.close()
         return [number[0] for number in r]
 
-    def getNumbersLeftTheGroup(self, group_id, dict=False):
+    def numbersLeftTheGroupIndex(self, group_id):
         con = self.ConexaoBanco()
-        # if dict:
-        #     con.row_factory = self.__dict_factory
         c = con.cursor()
         sql = """SELECT
             number
         FROM wa_group_leads
-        WHERE wa_groups_id = """ + str(group_id) + """
-        AND out = true;
+        WHERE wa_group_id = """ + str(group_id) + """
+        AND out = 1;
         """
         c.execute(sql)
         r = c.fetchall()
         con.close()
         return [number[0] for number in r]
-
-    def setNumbersLeftTheGroup(self, group_id, numbersLeftTheGroup):
+    
+    def numbersLeftTheGroupUpdate(self, group_id, numbersLeftTheGroup):
         con = self.ConexaoBanco()
         for number in numbersLeftTheGroup:
             sql = """UPDATE wa_group_leads
-              SET out = 'true'
-            WHERE wa_groups_id = '""" + group_id + """' AND 
+              SET out = 1
+            WHERE wa_group_id = '""" + str(group_id) + """' AND 
                   number = '""" + number.strip() + """';
             """
             # try:
@@ -479,12 +542,71 @@ class DataBase:
             # except Error as ex:
             #     print(ex)
         con.close()
+    
+    def sentWelcomeMessageUpdate(self, group_id, number):
+        con = self.ConexaoBanco()
+        sql = """UPDATE wa_group_leads
+            SET sent_welcome = datetime('now','localtime')
+        WHERE wa_group_id = '""" + str(group_id) + """' AND 
+                number = '""" + number + """';
+        """
+        # try:
+        c = con.cursor()
+        c.execute(sql)
+        con.commit()
+        # except Error as ex:
+        #     print(ex)
+        con.close()
 
-    def setNewNumbersInTheGroup(self, group_id, newNumbersInTheGroup):
+    def welcomeMessageIndex(self, group_id, dict=True):
+        con = self.ConexaoBanco()
+        if dict:
+            con.row_factory = self.__dict_factory
+        c = con.cursor()
+        sql = """select
+            t5.type,
+            t5.value
+        from wa_groups t1,
+            segmentations t2,
+            campaigns t3,
+            campaign_message t4,
+            message_items t5
+        where t1.id = """ + str(group_id) + """
+        and t2.id = t1.segmentation_id
+        and t3.id = t2.campaign_id
+        and t4.campaign_id = t3.id
+        and t4.shot = 'immediate'
+        and t5.message_id = t4.message_id
+        order by t5.id
+         """
+        c.execute(sql)
+        r = c.fetchall()
+        con.close()
+        return r
+    
+    def newNumbersInTheGroupIndex(self, group_id, dict=True):
+        con = self.ConexaoBanco()
+        if dict:
+            con.row_factory = self.__dict_factory
+        c = con.cursor()
+        sql = """SELECT
+            id,
+            number
+        FROM wa_group_leads
+        WHERE wa_group_id = """ + str(group_id) + """
+        and sent_welcome is null
+        and out = 0;
+        """
+        c.execute(sql)
+        r = c.fetchall()
+        con.close()
+        return r
+
+    def newNumbersInTheGroupStore(self, group_id, newNumbersInTheGroup):
         con = self.ConexaoBanco()
         for number in newNumbersInTheGroup:
             sql = """INSERT INTO wa_group_leads (
-                wa_groups_id,
+                wa_group_id,
                 number
             )
             VALUES (
@@ -492,7 +614,9 @@ class DataBase:
                 '""" + number.strip() + """'
             )
             ON CONFLICT(number) 
-            DO UPDATE SET out = false;
+            DO UPDATE SET
+               out = 0,
+               sent_welcome = null;
             """
             # try:
             c = con.cursor()
@@ -502,28 +626,27 @@ class DataBase:
             #     print(ex)
         con.close()
 
-
 if __name__ == "__main__":
     # # Retorna os grupos da campanha que estão dentro do preríodo para sererm monitorados
-    # groups = DataBase().getGroupsToMonitor()
+    # groups = DataBase().groupsToMonitorIndex()
     # print('--------------------------------')
     # for group in groups:
     #     print(group)
     #     print('--------------------------------')
 
     # # Retorna os números que estão do grupo
-    # numbers_in_the_group = DataBase().getNumbersInTheGroup(1)
+    # numbers_in_the_group = DataBase().numbersInTheGroupIndex(1)
     # print('--------------------------------')
     # for number in numbers_in_the_group:
     #     print(number)
 
     # # Retorna os números que saíram do grupo
-    # numbers_left_the_group = DataBase().getNumbersLeftTheGroup(1)
+    # numbers_left_the_group = DataBase().numbersLeftTheGroupIndex(1)
     # print('--------------------------------')
     # for number in numbers_left_the_group:
     #     print(number)
 
-    # DataBase().getNumbersInTheGroupDict(1)
-    # print(DataBase().getNumbersInTheGroup(group_id=1, dict=True))
+    # DataBase().numbersInTheGroupDictIndex(1)
+    # print(DataBase().numbersInTheGroupIndex(group_id=1, dict=True))
 
     DataBase().createDatabase()

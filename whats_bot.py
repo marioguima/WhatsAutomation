@@ -37,9 +37,7 @@ SEND_IMAGE = "//*[contains(@class, '_6TTaR')]"
 
 class WhatsApp:
     def __init__(self):
-        # with open(os.path.join('data', 'groups.json'), 'r') as json_file:
-        #     self.groups = json.load(json_file)
-        self.groups = db().getGroupsToMonitor(dict=True)
+        self.groups = db().groupsToMonitorIndex(dict=True)
 
         # mensagens agendadas
         self.scheduled_messages = []
@@ -149,16 +147,8 @@ class WhatsApp:
         except:
             return False
 
-    def CriaGrupo(self):
-        # with open(os.path.join('data', 'groups.json'), 'r') as json_file:
-        #     self.groups = json.load(json_file)
-        # for grp in self.groups:
-        # self.PesquisaContatoOuGrupo(grp['name'])
-
+    def GroupNew(self, groupName, initialMembers):
         wait = WebDriverWait(self.driver, 1800)
-        # Nome do grupo no topo
-        # wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(@class, 'DP7CM')]//span[text()='{}']".format(grp['name']))))
-        # Apareça Você na lista de membros do grupo
 
         # Menu de opções
         wait.until(EC.visibility_of_element_located(
@@ -170,15 +160,22 @@ class WhatsApp:
             (By.XPATH, "//div[text()='Novo grupo']")))
         self._click("//div[text()='Novo grupo']")
 
-        # Pesquisa de contato
-        wait.until(EC.visibility_of_element_located(
-            (By.XPATH, "//*[contains(@class, '_17ePo')]")))
-        self._click("//*[contains(@class, '_17ePo')]")
+        # Inclui os membros iniciais do grupo
+        for member in initialMembers:
+            # Campo de pesquisa de contato
+            wait.until(EC.visibility_of_element_located(
+                (By.XPATH, "//*[contains(@class, '_17ePo')]")))
+            self._click("//*[contains(@class, '_17ePo')]")
 
-        # Digitando o Nome do contato
-        self._send_keys("//*[contains(@class, '_17ePo')]",
-                        "Mário Guimarães Beta")
-        self._send_keys("//*[contains(@class, '_17ePo')]", Keys.ENTER)
+            # Digitando o Nome do contato
+            self._send_keys("//*[contains(@class, '_17ePo')]",
+                            member['contact_name'])
+
+            # aguarda 1 segundo
+            sleep(1)
+
+            # pressiona enter para confirmar o contato no grupo
+            self._send_keys("//*[contains(@class, '_17ePo')]", Keys.ENTER)
 
         # Botão de próximo
         wait.until(EC.visibility_of_element_located(
@@ -213,12 +210,97 @@ class WhatsApp:
         self._send_keys(
             "//*[contains(@class, '_3WjMU')]//*[contains(@class, '_3FRCZ')]", Keys.ENTER)
 
-        # parei aqui
+    def ChangeGroupDescription(self, groupName):
+        wait = WebDriverWait(self.driver, 1800)
 
         # Selecionar o grupo no topo
         wait.until(EC.visibility_of_element_located(
             (By.XPATH, "//*[contains(@class, '_33QME')]")))
         self._click("//*[contains(@class, '_33QME')]")
+
+        groupDescription = "🟡 ATENÇÃO AQUI. Esse Grupo é Para Você Receber os Avisos e Links das Aulas da Semana da Riqueza Digital\r\n\r\nDia e Horário da Aulas\r\nAula 1️⃣ - SEG - 28/09 - 14h 🕣\r\nAula 2️⃣ - TER - 29/09 - 14h 🕣\r\nAula 3️⃣ - QUA - 30/09 - 14h 🕣\r\nAula 4️⃣ - QUI - 01/10 - 14h 🕣\r\n\r\nAs aulas são Ao Vivo e Gratuitas\r\n\r\nVocê vai aprender o que precisa fazer para finalmente conseguir ganhar dinheiro pela internet mais rápido e com menos esforço."
+        aDescription = groupDescription.split("\r\n")
+        # Editar descrição do grupo
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, '_1YlWr')]//*[@title='Editar']/span")))
+        self._click("//*[contains(@class, '_1YlWr')]//*[@title='Editar']/span")
+
+        # Descrição do grupo
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, 'VV0FC')]//*[contains(@class, '_3FRCZ')]")))
+        elDescription = self.driver.find_element_by_xpath(
+            "//*[contains(@class, 'VV0FC')]//*[contains(@class, '_3FRCZ')]")
+
+        # Digitar linhas da descrição
+        for line in aDescription:
+            elDescription.send_keys(line, Keys.SHIFT, Keys.ENTER)
+
+        # Salvar a descrição
+        elDescription.send_keys(Keys.ENTER)
+
+        # Configurações do grupo
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, '_1TM40')]/div[4]/div[3]/div/div")))
+        self._click("//*[contains(@class, '_1TM40')]/div[4]/div[3]/div/div")
+
+        # Editar dados do grupo
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@class, '_2wPpw')]/div/div/div/div/div")))
+        self._click("//*[contains(@class, '_2wPpw')]/div/div/div/div/div")
+
+        # Somente admins
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//label[text()='Somente admins']")))
+        self._click("//label[text()='Somente admins']")
+
+        # Confirmar
+        self._click("//div[text()='Confirmar']")
+
+        # Enviar mensagem
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//span[text()='Enviar mensagens']")))
+        self._click("//span[text()='Enviar mensagens']")
+
+        # Somente admins
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//label[text()='Somente admins']")))
+        self._click("//label[text()='Somente admins']")
+
+        # Confirmar
+        self._click("//div[text()='Confirmar']")
+
+        # Editar admins
+        wait.until(EC.visibility_of_element_located(
+            (By.XPATH, "//span[text()='Editar admins do grupo']")))
+        self._click("//span[text()='Editar admins do grupo']")
+
+        # Campo pesquisa do nome
+        searchContact = self.driver.find_element_by_xpath(
+            "//*[contains(@class, '_9a59P')]//*[contains(@class, '_3FRCZ')]")
+
+        # Digita o nome da pessoa
+        searchContact.send_keys("Mário Guimarães Suporte", Keys.ENTER)
+
+        # Clica no X para limpar o nome e seguir para o próximo
+        # isso é para estar no loop dos admins
+        self._click("//*[contains(@class, 'MfAhJ')]/span")
+
+        # Confirma
+        self._click("//*[contains(@class, '_3y5oW')]")
+
+        # Clica na seta para voltar
+        self._click("//*[contains(@class, 't4a8o')]")
+
+        # Clica em Convidar via link para pegar o link do grupo
+        groupLink = self.driver.find_element_by_xpath(
+            "//*[contains(@class, '_1TM40')]/div[5]/div[3]/div[2]/div")
+        print(groupLink.text)
+
+        # Clica na seta para voltar
+        self._click("//*[contains(@class, 't4a8o')]")
+
+        # Clica no X para sair
+        self._click("//*[contains(@class, 't4a8o')]")
 
     def PesquisaContatoOuGrupo(self, nome):
         # campo de pesquisa
@@ -337,11 +419,13 @@ class WhatsApp:
 
     def SendWelcomeMessage(self):
         for grp in self.groups:
-            for number in grp['new_numbers']:
-                number_without_spaces = number.strip()
+            newNumbersInTheGroup = db().newNumbersInTheGroupIndex(grp['id'])
+            # newNumbersInTheGroup = [{'id': 0, 'number': '+55 11 98400-2595'}]
+            for lead in newNumbersInTheGroup:
+                number_without_plus = lead['number'].replace("+", "")
                 # encontrar pessoa
                 contact_url = "https://web.whatsapp.com/send?phone={}".format(
-                    number_without_spaces.replace("+", ""))
+                    number_without_plus)
                 self.driver.get(contact_url)
                 wait = WebDriverWait(self.driver, 1800)
                 wait.until(EC.element_to_be_clickable((By.XPATH, MESSAGE_BOX)))
@@ -353,60 +437,42 @@ class WhatsApp:
                     # Bom dia! / Boa tarde! / Boa noite!
                     self.EnviarSaudacao()
 
-                    el = self._get_element(MESSAGE_BOX)
-                    # envia mensagem de boas-vindas
-                    with open(os.path.join('data', 'welcome.json'), 'r') as json_file:
-                        boas_vindas = json.load(json_file)
-                    for message in boas_vindas:
-                        el.click()
-                        for text in message:
-                            el.send_keys(text)
-                            el.send_keys(Keys.SHIFT, Keys.ENTER)
-                        self._click(SEND)
+                    # Recupera a mensagem de boas-vindas
+                    welcomeMessage = db().welcomeMessageIndex(grp['id'])
 
-                grp['new_numbers'].remove(number)
-                # atualizar o groups.json
-                with open(os.path.join('data', 'groups.json'), 'w') as json_file:
-                    json.dump(self.groups, json_file, indent=4)
+                    # caixa de mensagem
+                    messageBox = self._get_element(MESSAGE_BOX)
+
+                    # envia mensagem de boas-vindas
+                    for content in welcomeMessage:
+                        if content['type'] == 'text':
+                            messageBox.click()
+                            lines = content['value'].split("\r\n ")
+                            for text in lines:
+                                messageBox.send_keys(text)
+                                messageBox.send_keys(Keys.SHIFT, Keys.ENTER)
+                            self._click(SEND)
+                        # elif content['type'] == 'group_key':
+                        #     value = group['key_value'][content['key']]
+                        #     messageBox.click()
+                        #     messageBox.send_keys(value)
+                        #     self._click(SEND)
+                        elif content['type'] in ['image', 'document', 'video', 'audio']:
+                            path = content['value']
+                            self._click(CLIP_ICON)
+                            self._get_element(IMAGE_BUTTON).send_keys(path)
+                            wait.until(EC.element_to_be_clickable(
+                                (By.XPATH, SEND_IMAGE)))
+                            self._click(SEND_IMAGE)
+
+                # Atualiza lead com a data de envio da mensagem de boas-vindas
+                db().sentWelcomeMessageUpdate(grp['id'], lead['number'])
 
             # encontrar o grupo para não ficar com a última pessoa ativa, dentro do chat com a pessoa
             self.PesquisaContatoOuGrupo(grp['name'])
 
-        print('campain = {}'.format(campain['id']))
-        send = campain['send']
-        for group in self.groups:
-            if group['id'] in campain['to']:
-                self.PesquisaContatoOuGrupo(group['name'])
-
-                wait = WebDriverWait(self.driver, 1800)
-                # Aguarda a Caixa de envio de mensagem estar pronta para ser utilizada
-                wait.until(EC.element_to_be_clickable((By.XPATH, MESSAGE_BOX)))
-
-                messageBox = self._get_element(MESSAGE_BOX)
-                for content in send:
-                    if content['type'] == 'text':
-                        messageBox.click()
-                        for text in content['text']:
-                            messageBox.send_keys(text, Keys.SHIFT, Keys.ENTER)
-                        self._click(SEND)
-                    if content['type'] == 'group_key':
-                        value = group['key_value'][content['key']]
-                        messageBox.click()
-                        messageBox.send_keys(value)
-                        self._click(SEND)
-                    if content['type'] in ['image', 'document', 'video', 'audio']:
-                        path = content['path']
-                        self._click(CLIP_ICON)
-                        self._get_element(IMAGE_BUTTON).send_keys(path)
-                        wait.until(EC.element_to_be_clickable(
-                            (By.XPATH, SEND_IMAGE)))
-                        self._click(SEND_IMAGE)
-
-        # self.search_contact('Mário Guimarães Beta')
-        # sleep(2)
-
     def GroupsMonitor(self):
-        self.groups = db().getGroupsToMonitor(dict=True)
+        self.groups = db().groupsToMonitorIndex(dict=True)
 
         for grp in self.groups:
             self.PesquisaContatoOuGrupo(grp['name'])
@@ -424,12 +490,10 @@ class WhatsApp:
                 number.strip() for number in group_numbers if "+" in number]
 
             # # Retorna os números que estão do grupo
-            numbersInTheGroupBefore = db().getNumbersInTheGroup(
-                group_id=grp['id'], dict=True)
+            numbersInTheGroupBefore = db().numbersInTheGroupIndex(grp['id'])
 
             # Retorna os números que saíram do grupo
-            numbersLeftTheGroup = db().getNumbersLeftTheGroup(
-                group_id=grp['id'], dict=True)
+            numbersLeftTheGroup = db().numbersLeftTheGroupIndex(grp['id'])
 
             # números que saíram do grupo
             numbers_left_the_group_now = list(
@@ -437,7 +501,7 @@ class WhatsApp:
             numbersLeftTheGroup = numbersLeftTheGroup + numbers_left_the_group_now
 
             # Atualizar a lista de numeros que sairam do grupo
-            db().setNumbersLeftTheGroup(grp['id'], numbersLeftTheGroup)
+            db().numbersLeftTheGroupUpdate(grp['id'], numbersLeftTheGroup)
 
             newNumbersInTheGroup = list(
                 set(numbersInTheGroupNow) - set(numbersInTheGroupBefore))
@@ -445,13 +509,13 @@ class WhatsApp:
                 set(newNumbersInTheGroup) - set(numbersLeftTheGroup))
 
             # Atualizar a lista de numeros que entrarm do grupo
-            db().setNewNumbersInTheGroup(grp['id'], newNumbersInTheGroup)
+            db().newNumbersInTheGroupStore(grp['id'], newNumbersInTheGroup)
 
     def scheduler_jobs(self):
         # schedule.every(1).minutes.do(self.campaigns)
         schedule.every(1).minutes.do(self.GroupsMonitor)
         schedule.every(2).minutes.do(self.SendWelcomeMessage)
-        # schedule.every(5).minutes.do(self.ApiAtualizaCampanhas)
+        # schedule.every(10).minutes.do(apiAuto().updatesCampaignsIndex())
 
         while 1:
             schedule.run_pending()
@@ -464,25 +528,17 @@ class WhatsApp:
 
 db().createDatabase()
 
-apiAuto().getUpdatesCampaigns()
+apiAuto().updatesCampaignsIndex()
 
 bot = WhatsApp()
 wait = WebDriverWait(bot.driver, 1800)
 wait.until(EC.element_to_be_clickable((By.XPATH, SEARCH_OR_INI_CHAT)))
 
-# bot.EnviarMensagemSuporte()
+# bot.GroupNew()
 
-# with open(os.path.join('data', 'campaigns.json'), 'r') as json_file:
-#     campaigns = json.load(json_file)
-# bot.Campain(campaigns[0])
-# sleep(10)
-
-# bot.CriaGrupo()
-
-# # # bot.scheduledMessages()
-bot.GroupsMonitor()
-# # bot.SendWelcomeMessage()
-# # # bot.ApiAtualizaCampanhas()
+# # bot.scheduledMessages()
+# bot.GroupsMonitor()
+# bot.SendWelcomeMessage()
 
 # if __name__ == "__main__":
 #     bot.scheduler_jobs()
